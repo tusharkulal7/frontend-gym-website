@@ -1,0 +1,13 @@
+@font-face {
+  font-family: 'Agency FB';
+  src: url('/fonts/AGENCYR.TTF') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Agency FB';
+  src: url('/fonts/AGENCYB.TTF') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
