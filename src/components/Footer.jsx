@@ -3,16 +3,22 @@ export default function Footer() {
     <footer className="text-white body-font bg-red-600">
       <div className="container px-4 md:px-8 py-6 mx-auto flex flex-col sm:flex-row items-center justify-between">
         {/* Logo and Copyright */}
-        <div className="flex items-center justify-center mb-4 sm:mb-0 space-x-4">
-          <img
-            src="/images/gym-banner.png"
-            alt="Gym Logo"
-            className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
-          />
-          <p className="text-sm sm:text-base text-gray-100 text-center">
-            © 2025 Evolution Gym & Fitness. All rights reserved.
-          </p>
-        </div>
+        <div className="flex flex-col items-center justify-center mb-4 sm:mb-0">
+  <div className="flex items-center space-x-4">
+    <img
+      src="/images/gym-banner.png"
+      alt="Gym Logo"
+      className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
+    />
+    <p className="text-sm sm:text-base text-gray-100 text-center">
+      © 2025 Evolution Gym & Fitness. All rights reserved.
+    </p>
+  </div>
+  <p className="text-sm sm:text-base text-gray-100 text-center mt-1">
+    Designed and Maintained by: Tushar
+  </p>
+</div>
+
 
         {/* Social Icons */}
         <span className="inline-flex mt-4 sm:mt-0 justify-center sm:justify-start space-x-4">
