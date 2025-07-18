@@ -1,9 +1,24 @@
 export default function About() {
   return (
-    <section className="p-10">
-      <h2 className="font-agency underline text-3xl font-bold mb-4">About Us:</h2>
-      <p className="font-agency text-white mb-2">EVOLUTION GYM & FITNESS was founded by HITHESH AMIN on August 15th in the year 2016 . Expanded successively with branches in Mukka, Padubidri, and Hosabettu.</p>
-      <p className="font-agency text-white">ACHIEVEMENTS : Bodybuilders from Evolution have won multiple medals at District, State, and National level competitions.</p>
+    <section className="px-6 pt-32 py-10 md:px-20 lg:px-32 text-white">
+      <div className="max-w-5xl mx-auto">
+        <h2 className="font-agency underline text-4xl sm:text-5xl md:text-6xl font-bold mb-8 text-center md:text-left">
+          About Us:
+        </h2>
+
+        <p className="font-agency text-lg sm:text-xl md:text-2xl mb-6 leading-relaxed">
+          <strong className="text-red-400">EVOLUTION GYM & FITNESS</strong> was founded by{" "}
+          <strong className="text-yellow-300">HITHESH AMIN</strong> on August 15th, 2016. It has
+          expanded with branches in <span className="text-green-300">Mukka, Padubidri, and Hosabettu</span>.
+        </p>
+
+        <p className="font-agency text-lg sm:text-xl md:text-2xl leading-relaxed">
+          <strong className="text-red-400">ACHIEVEMENTS:</strong> Bodybuilders from EVOLUTION have won
+          multiple medals at <span className="text-blue-300">District</span>,{" "}
+          <span className="text-purple-300">State</span>, and{" "}
+          <span className="text-pink-300">National</span> level competitions.
+        </p>
+      </div>
     </section>
   );
 }

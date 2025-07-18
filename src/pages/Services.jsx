@@ -23,42 +23,48 @@ export default function Services() {
   const [selected, setSelected] = useState("weightTraining");
 
   return (
-    <section className="p-10 text-white">
-      <h2 className="font-agency underline text-3xl font-bold mb-6 text-white">
-        Our Services :
-      </h2>
+    <section className="px-6 pt-32 py-12 md:px-10 text-white">
+      <div className="max-w-5xl mx-auto">
+        <h2 className="font-agency underline text-4xl sm:text-5xl md:text-6xl font-bold mb-10 text-center md:text-left">
+          Our Services :
+        </h2>
 
-      <div className="flex flex-wrap gap-4 mb-6">
-        {Object.keys(services).map((key) => (
-          <button
-            key={key}
-            onClick={() => setSelected(key)}
-            className={`px-4 py-2 rounded-lg font-agency text-lg transition-colors ${
-              selected === key
-                ? "bg-red-600 text-white"
-                : "bg-gray-700 text-gray-300"
-            }`}
+        {/* Button Group */}
+        <div className="flex flex-wrap gap-4 justify-center md:justify-start mb-10">
+          {Object.keys(services).map((key) => (
+            <button
+              key={key}
+              onClick={() => setSelected(key)}
+              className={`px-5 py-3 rounded-lg font-agency text-lg sm:text-xl md:text-2xl transition-colors ${
+                selected === key
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              }`}
+            >
+              {services[key].title}
+            </button>
+          ))}
+        </div>
+
+        {/* Animated Description Box */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selected}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+            className="bg-gray-900/80 p-6 md:p-8 rounded-xl shadow-lg"
           >
-            {services[key].title}
-          </button>
-        ))}
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 font-agency underline underline-offset-4 decoration-red-600">
+              {services[selected].title}
+            </h3>
+            <p className="text-gray-300 font-agency text-base sm:text-lg md:text-xl leading-relaxed">
+              {services[selected].description}
+            </p>
+          </motion.div>
+        </AnimatePresence>
       </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={selected}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.4 }}
-          className="bg-gray-800 p-6 rounded-xl shadow-md"
-        >
-          <h3 className="text-2xl font-bold mb-4 font-agency underline underline-offset-4 decoration-red-600">
-            {services[selected].title}
-          </h3>
-          <p className="text-gray-300 font-agency">{services[selected].description}</p>
-        </motion.div>
-      </AnimatePresence>
     </section>
   );
 }
