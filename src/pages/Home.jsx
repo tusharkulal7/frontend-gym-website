@@ -1,7 +1,6 @@
 // src/pages/Home.jsx
 import { useKeenSlider } from "keen-slider/react";
 import "keen-slider/keen-slider.min.css";
-import { useEffect, useRef } from "react";
 
 export default function Home() {
   const [sliderRef] = useKeenSlider({

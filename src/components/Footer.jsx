@@ -38,7 +38,7 @@ export default function Footer() {
           {/* Instagram */}
           <a
             className="ml-3 text-black"
-            href="https://www.instagram.com/evolutiongymfitness/?hl=en"
+            href="https://www.instagram.com/evolutiongymfitness/"
             target="_blank"
             rel="noopener noreferrer"
           >
