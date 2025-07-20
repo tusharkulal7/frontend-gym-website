@@ -35,9 +35,10 @@ export default function Home() {
         {/* Carousel Section */}
         <div className="w-full lg:w-1/2">
           <div
-            ref={sliderRef}
-            className="keen-slider aspect-video rounded-xl overflow-hidden shadow-xl border-4 border-white"
-          >
+  ref={sliderRef}
+  className="keen-slider aspect-video rounded-xl overflow-hidden border-4 border-red-600 shadow-[0_0_20px_5px_rgba(255,0,0,0.7)]"
+>
+
             {[0, 1, 2, 4, 5].map((i) => (
               <div key={i} className="keen-slider__slide">
                 <img

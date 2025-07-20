@@ -33,7 +33,7 @@ export default function TrainerSection() {
               <img
                 src={trainer.image}
                 alt={trainer.name}
-                className="rounded-2xl shadow-xl w-full object-cover h-64 md:h-80 lg:h-[28rem] border-4 border-white"
+                className="rounded-2xl w-full object-cover h-64 md:h-80 lg:h-[28rem] border-4 border-red-600 shadow-[0_0_20px_5px_rgba(255,0,0,0.7)]"
               />
             </div>
 

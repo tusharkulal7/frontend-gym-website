@@ -59,23 +59,24 @@ export default function Header() {
 
       {/* Nav Links - Mobile Dropdown */}
       {menuOpen && (
-        <div className="md:hidden bg-red-700 px-6 pb-4 font-agency text-base space-y-3">
-          {navLinks.map((link) => (
-            <NavLink
-              key={link.name}
-              to={link.path}
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                `block transition-all duration-200 ${
-                  isActive ? "text-white font-bold" : "text-black hover:text-white"
-                }`
-              }
-            >
-              {link.name}
-            </NavLink>
-          ))}
-        </div>
-      )}
+  <div className="md:hidden bg-black px-6 pb-4 font-agency text-base space-y-3">
+    {navLinks.map((link) => (
+      <NavLink
+        key={link.name}
+        to={link.path}
+        onClick={() => setMenuOpen(false)}
+        className={({ isActive }) =>
+          `block transition-all duration-200 font-bold ${
+            isActive ? "text-white" : "text-red-500 hover:text-white"
+          }`
+        }
+      >
+        {link.name}
+      </NavLink>
+    ))}
+  </div>
+)}
+
     </header>
   );
 }

@@ -29,8 +29,7 @@ export default function Contact() {
     📞 <span className="font-bold underline">Phone:</span> +91 9535426679
   </p>
   <p className="font-agency text-white leading-relaxed">
-    🕒 <span className="font-bold underline">Open:</span> Mon - Sat, 6AM - 11AM<br />
-    <span className="pl-6 md:pl-12">4PM - 9PM</span>
+    🕒 <span className="font-bold underline">Open:</span> Mon - Sat, 6AM - 11AM ,  4PM - 9PM <br />
   </p>
 </div>
 
