@@ -1,4 +1,4 @@
-export default function TrainerSection() {
+export default function Trainers() {
   const trainers = [
     {
       name: "HITHESH AMIN",

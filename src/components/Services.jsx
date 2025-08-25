@@ -26,7 +26,7 @@ export default function Services() {
     <section className="px-6 pt-32 py-12 md:px-10 text-white">
       <div className="max-w-5xl mx-auto">
         <h2 className="font-agency underline text-4xl sm:text-5xl md:text-6xl font-bold mb-10 text-center md:text-left">
-          Our Services :
+          What Services We Provide ? :
         </h2>
 
         {/* Button Group */}
