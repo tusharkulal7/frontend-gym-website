@@ -1,12 +1,6 @@
 export default function Trainers() {
   const trainers = [
     {
-      name: "HITHESH AMIN",
-      role: "Gym Founder",
-      bio: "Founder of EVOLUTION GYM & FITNESS",
-      image: "/images/hithesh.jpg",
-    },
-    {
       name: "RAVI KULAI",
       role: "Head Trainer",
       bio: "Winner of Mr.Karnataka and Champion of Champions in 2017.",
@@ -18,7 +12,7 @@ export default function Trainers() {
     <section className="text-white py-16 pt-32 px-4 sm:px-8">
       <div className="max-w-6xl mx-auto">
         <h2 className="font-agency underline text-4xl sm:text-5xl md:text-6xl font-bold mb-12 text-center">
-          Our Trainers
+          Train with Champion of Champions
         </h2>
 
         {trainers.map((trainer, index) => (

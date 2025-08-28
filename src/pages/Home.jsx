@@ -2,6 +2,7 @@ import { useKeenSlider } from "keen-slider/react";
 import "keen-slider/keen-slider.min.css";
 import Services from "../components/Services"; // 👈 import the section
 import Trainers from "../components/Trainers";
+import GymStats from "../components/GymStats"; 
 
 export default function Home() {
   const [sliderRef] = useKeenSlider({
@@ -36,7 +37,7 @@ export default function Home() {
 Our expert trainers are here to guide you every step of the way, from personalized workout plans to nutritional advice tailored just for you.
 Whether you're a beginner or an experienced lifter, our community welcomes all fitness levels with open arms.
 State-of-the-art equipment, high-energy workout zones, and a results-driven environment keep you focused and inspired.
-Join a tribe that celebrates hard work, progress, and transformation.
+Join a group that celebrates hard work, progress, and transformation.
 Every drop of sweat brings you closer to your goals—this is more than a gym; it’s a lifestyle.
 Push past limits, break through barriers, and unlock the best version of yourself.
 Experience the difference—train hard, recover smart, and grow stronger every day.
@@ -65,6 +66,7 @@ Experience the difference—train hard, recover smart, and grow stronger every d
       <Trainers />
       {/* 👇 Add Services section here */}
       <Services />
+      <GymStats />
     </>
   );
 }
