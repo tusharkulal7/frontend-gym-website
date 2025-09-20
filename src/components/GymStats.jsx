@@ -24,7 +24,7 @@ export default function GymStats() {
     <section className="text-white py-16 px-4 sm:px-8 bg-black">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-center mb-12 underline font-agency">
-          Strength in Numbers
+          The Evolution Journey
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 text-center">

@@ -1,60 +1,275 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { MoreVertical } from "lucide-react";
+import axios from "axios";
 
-export default function GallerySection() {
+export default function GallerySection({ token, userRole }) {
   const [activeTab, setActiveTab] = useState("photos");
-  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
-  const [selectedVideoIndex, setSelectedVideoIndex] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [images, setImages] = useState([]);
+  const [videos, setVideos] = useState([]);
+  const [playVideo, setPlayVideo] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [modifyMode, setModifyMode] = useState(false);
+  const [swapMode, setSwapMode] = useState(false);
+  const [swapFirstItem, setSwapFirstItem] = useState(null);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [editingItem, setEditingItem] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editFile, setEditFile] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const menuRef = useRef();
 
-  const images = [
-    "/images/gallery/1.jpg", "/images/gallery/2.jpg", "/images/gallery/3.webp",
-    "/images/gallery/4.jpg", "/images/gallery/5.jpg", "/images/gallery/6.jpg",
-    "/images/gallery/7.jpg", "/images/gallery/8.jpg", "/images/gallery/9.jpg",
-    "/images/gallery/10.jpg", "/images/gallery/11.jpg", "/images/gallery/12.jpg",
-    "/images/gallery/13.jpg", "/images/gallery/14.jpg", "/images/gallery/15.jpg",
-    "/images/gallery/16.jpg", "/images/gallery/17.jpg", "/images/gallery/18.jpg",
-    "/images/gallery/19.jpg", "/images/gallery/20.jpg", "/images/gallery/21.jpg",
-    "/images/gallery/22.jpg", "/images/gallery/23.jpg", "/images/gallery/24.jpg",
-    "/images/gallery/g2.jpg",
-  ];
+  const normalizedRole = userRole?.toLowerCase().replace(/\s+/g, "") || "none";
+  const modalItems = activeTab === "photos" ? images : videos;
 
-  const videos = [
-    "/videos/1.mp4", "/videos/2.mp4", "/videos/4.mp4",
-    "/videos/5.mp4", "/videos/6.mp4",
-  ];
+  /** Fetch gallery items */
+  const fetchGallery = useCallback(async () => {
+    try {
+      const res = await axios.get("/api/gallery");
+      const items = res.data.items || [];
+      setImages(items.filter((i) => i.type === "image"));
+      setVideos(items.filter((i) => i.type === "video"));
+    } catch (err) {
+      console.error("Failed to fetch gallery:", err);
+    }
+  }, []);
 
+  useEffect(() => { fetchGallery(); }, [fetchGallery]);
+
+  /** ESC key closes modals */
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape") {
-        setSelectedImageIndex(null);
-        setSelectedVideoIndex(null);
+        setSelectedIndex(null);
+        setPlayVideo(false);
+        setMenuOpen(false);
+        setDeleteMode(false);
+        setModifyMode(false);
+        setSwapMode(false);
+        setSwapFirstItem(null);
+        setSelectedItems([]);
+        setEditingItem(null);
       }
     };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, []);
 
-  const handleImageNav = (direction) => {
-    setSelectedImageIndex((prev) => {
-      if (prev === null) return null;
-      return direction === "prev"
-        ? (prev - 1 + images.length) % images.length
-        : (prev + 1) % images.length;
-    });
+  /** Click outside menu closes it */
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    window.addEventListener("mousedown", handleClickOutside);
+    return () => window.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  /** Modal navigation */
+  const handleNav = (direction, type) => {
+    const items = type === "image" ? images : videos;
+    const currentIndex = items.findIndex((i) => i._id === selectedIndex);
+    if (currentIndex === -1) return;
+    const nextIndex = direction === "prev"
+      ? (currentIndex - 1 + items.length) % items.length
+      : (currentIndex + 1) % items.length;
+    setSelectedIndex(items[nextIndex]._id);
+    setPlayVideo(false);
   };
 
-  const handleVideoNav = (direction) => {
-    setSelectedVideoIndex((prev) => {
-      if (prev === null) return null;
-      return direction === "prev"
-        ? (prev - 1 + videos.length) % videos.length
-        : (prev + 1) % videos.length;
-    });
+  /** File input */
+  const handleFileChange = (e) => setFiles([...e.target.files]);
+
+  /** Upload files */
+  const handleUpload = async () => {
+    if (!files.length) return;
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+    try {
+      const res = await axios.post("/api/gallery/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` },
+      });
+      const newItems = res.data.items || [];
+      setImages((prev) => [...prev, ...newItems.filter((i) => i.type === "image")]);
+      setVideos((prev) => [...prev, ...newItems.filter((i) => i.type === "video")]);
+      setFiles([]);
+      setMenuOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
+    }
+  };
+
+  /** Delete logic */
+  const toggleDeleteMode = () => {
+    setDeleteMode((prev) => !prev);
+    setModifyMode(false);
+    setSwapMode(false);
+    setSelectedItems([]);
+  };
+
+  const toggleSelectItem = (id) => {
+    if (modifyMode) setSelectedItems([id]);
+    else if (!swapMode) setSelectedItems((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!selectedItems.length) return alert("Select items to delete");
+    try {
+      await axios.delete("/api/gallery", {
+        headers: { Authorization: `Bearer ${token}` },
+        data: { ids: selectedItems },
+      });
+      setImages((prev) => prev.filter((i) => !selectedItems.includes(i._id)));
+      setVideos((prev) => prev.filter((i) => !selectedItems.includes(i._id)));
+      setDeleteMode(false);
+      setSelectedItems([]);
+      setMenuOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed");
+    }
+  };
+
+  /** Modify logic */
+  const openEditModal = (item) => {
+    setEditingItem(item);
+    setEditTitle(item.title ?? item.name ?? "");
+    setEditFile(null);
+    setModifyMode(false);
+    setSwapMode(false);
+    setSelectedItems([]);
+  };
+
+  const handleEditFileChange = (e) => setEditFile(e.target.files?.[0] || null);
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    setSavingEdit(true);
+    try {
+      const formData = new FormData();
+      if (editTitle) formData.append("title", editTitle);
+      if (editFile) formData.append("file", editFile);
+      const res = await axios.put(`/api/gallery/${editingItem._id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` },
+      });
+      const updated = res.data.item ?? res.data;
+      setImages((prev) => prev.map((i) => (i._id === updated._id ? updated : i)));
+      setVideos((prev) => prev.map((i) => (i._id === updated._id ? updated : i)));
+      setEditingItem(null);
+      setEditTitle("");
+      setEditFile(null);
+      setSelectedItems([]);
+    } catch (err) {
+      console.error("Modify failed:", err);
+      alert("Failed to modify item.");
+      try { await fetchGallery(); } catch (_) {}
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  /** Swap logic with neon border */
+  const handleSwapItemClick = async (item) => {
+    if (!swapFirstItem) {
+      setSwapFirstItem(item); // first item selected
+      return;
+    }
+
+    const currentItems = activeTab === "photos" ? [...images] : [...videos];
+    const index1 = currentItems.findIndex((i) => i._id === swapFirstItem._id);
+    const index2 = currentItems.findIndex((i) => i._id === item._id);
+
+    if (index1 === -1 || index2 === -1 || index1 === index2) return;
+
+    [currentItems[index1], currentItems[index2]] = [currentItems[index2], currentItems[index1]];
+
+    if (activeTab === "photos") setImages(currentItems);
+    else setVideos(currentItems);
+
+    setSwapMode(false);
+    setSwapFirstItem(null);
+    setSelectedItems([]);
+
+    try {
+      await axios.put(
+        "/api/gallery/reorder",
+        { items: currentItems.map((i, idx) => ({ _id: i._id, position: idx })) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (err) {
+      console.error("Swap update failed:", err);
+    }
+  };
+
+  /** Menu actions */
+  const handleMenuAction = (action) => {
+    if (action === "add") document.getElementById("fileInput").click();
+    else if (action === "delete") toggleDeleteMode();
+    else if (action === "modify") {
+      if (!selectedItems.length) { setModifyMode(true); setDeleteMode(false); setSwapMode(false); return; }
+      if (selectedItems.length !== 1) return alert("Select exactly one item to modify.");
+      const itemToEdit = [...images, ...videos].find((i) => i._id === selectedItems[0]);
+      if (!itemToEdit) return alert("Selected item not found.");
+      openEditModal(itemToEdit);
+    }
+    else if (action === "swap") {
+      setSwapMode(true);
+      setSwapFirstItem(null);
+      setModifyMode(false);
+      setDeleteMode(false);
+      setSelectedItems([]);
+      alert("Swap mode enabled. Click the first item to start swapping.");
+    }
+    setMenuOpen(false);
+  };
+
+  /** Handle gallery item click */
+  const handleItemClick = (item) => {
+    if (swapMode) return handleSwapItemClick(item);
+    if (modifyMode) return toggleSelectItem(item._id);
+    if (deleteMode) return toggleSelectItem(item._id);
+    setSelectedIndex(item._id);
+    if (activeTab === "videos") setPlayVideo(true);
   };
 
   return (
     <>
-      <section className="py-16 pt-32 px-4 text-white">
+      <section className="py-16 pt-32 px-4 text-white relative">
+        {(normalizedRole === "super-admin" || normalizedRole === "admin") && (
+          <div className="fixed top-[160px] right-4 z-20 md:top-[180px]" ref={menuRef}>
+            <button onClick={() => setMenuOpen((prev) => !prev)} className="p-2 rounded-full hover:bg-gray-800 bg-gray-900">
+              <MoreVertical size={28} />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-44 md:w-56 bg-gray-900 border border-gray-700 rounded-md shadow-lg">
+                {["Add", "Delete", "Modify", "Swap"].map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => handleMenuAction(item.toLowerCase())}
+                    className="block w-full text-left px-4 py-3 md:py-4 text-base md:text-lg hover:bg-gray-800"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <input id="fileInput" type="file" multiple onChange={handleFileChange} style={{ display: "none" }} />
+
+            {files.length > 0 && (
+              <button onClick={handleUpload} className="mt-2 w-full bg-red-600 text-white py-2 rounded-md">
+                Upload {files.length} file(s)
+              </button>
+            )}
+          </div>
+        )}
+
         <h1 className="font-agency underline text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold text-center">
           Explore the Library
         </h1>
@@ -62,15 +277,12 @@ export default function GallerySection() {
           A visual collection of our most recent works – better transformation and fitness.
         </p>
 
+        {/* Tabs */}
         <div className="flex justify-center mt-10 gap-4">
           {["photos", "videos"].map((tab) => (
             <button
               key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                setSelectedImageIndex(null);
-                setSelectedVideoIndex(null);
-              }}
+              onClick={() => { setActiveTab(tab); setSelectedIndex(null); setPlayVideo(false); }}
               className={`px-6 md:px-8 py-2 md:py-3 font-agency text-xl md:text-2xl lg:text-3xl rounded-full border-2 transition-all duration-300 ${
                 activeTab === tab
                   ? "bg-red-600 text-white border-red-600"
@@ -82,42 +294,97 @@ export default function GallerySection() {
           ))}
         </div>
 
-        <div className="mt-12 max-w-6xl mx-auto">
-          {activeTab === "photos" && (
-            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {images.map((src, index) => (
-                <img
-                  key={index}
-                  src={src}
-                  alt={`image-${index + 1}`}
-                  onClick={() => setSelectedImageIndex(index)}
-                  className="w-full object-cover rounded-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer h-64 md:h-72 lg:h-72"
-                />
-              ))}
-            </div>
-          )}
+        {/* Gallery Grid */}
+<div className="mt-12 max-w-6xl mx-auto">
+  {(activeTab === "photos" ? images : videos).length ? (
+    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+      {(activeTab === "photos" ? images : videos).map((item) => {
+        const isSwapSelected = swapFirstItem?._id === item._id;
 
-          {activeTab === "videos" && (
-            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 gap-6">
-              {videos.map((src, index) => (
+        return (
+          <div
+            key={item._id}
+            className={`relative cursor-pointer rounded-lg overflow-hidden ${
+              isSwapSelected ? "neon-red-border" : ""
+            }`}
+            onClick={() => handleItemClick(item)}
+          >
+            {/* Show checkboxes for delete/modify mode only */}
+            {(deleteMode || modifyMode) && (
+              <input
+                type="checkbox"
+                checked={selectedItems.includes(item._id)}
+                readOnly
+                className="absolute top-2 left-2 w-6 h-6 z-10 accent-red-600"
+              />
+            )}
+
+            {activeTab === "photos" ? (
+              <img
+                src={item.url}
+                alt={item.name || "Gallery Image"}
+                className="w-full object-cover rounded-lg hover:-translate-y-1 transition-all duration-300 h-40 sm:h-48 md:h-64 lg:h-72"
+              />
+            ) : (
+              <div className="relative w-full h-40 sm:h-48 md:h-64 lg:h-72">
                 <video
-                  key={index}
-                  src={src}
-                  onClick={() => setSelectedVideoIndex(index)}
-                  className="w-full h-64 md:h-72 lg:h-72 object-contain rounded-lg shadow-md cursor-pointer"
+                  src={item.url}
+                  className="w-full h-full object-cover rounded-lg pointer-events-none"
+                  preload="metadata"
+                  playsInline
+                  muted
                 />
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="bg-black/50 rounded-full w-14 h-14 flex items-center justify-center text-white opacity-80 text-3xl">
+                    ▶
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  ) : (
+    <p className="text-center text-gray-400 mt-8">No {activeTab} available.</p>
+  )}
+</div>
+
+
+        {/* Delete button */}
+        {deleteMode && selectedItems.length > 0 && (
+          <div className="fixed left-1/2 transform -translate-x-1/2 z-50 bottom-24 md:bottom-20">
+            <button
+              onClick={handleDeleteSelected}
+              className="bg-red-600 text-white px-10 py-5 rounded-lg text-2xl font-bold hover:bg-red-500 shadow-lg"
+            >
+              Delete Selected ({selectedItems.length})
+            </button>
+          </div>
+        )}
+
+        {/* Modify button */}
+        {modifyMode && selectedItems.length === 1 && (
+          <div className="fixed left-1/2 transform -translate-x-1/2 z-50 bottom-24 md:bottom-20">
+            <button
+              onClick={() => {
+                const itemToEdit = [...images, ...videos].find(i => i._id === selectedItems[0]);
+                if (itemToEdit) openEditModal(itemToEdit);
+              }}
+              className="bg-red-600 text-white px-10 py-5 rounded-lg text-2xl font-bold hover:bg-red-500 shadow-lg"
+            >
+              Modify Selected
+            </button>
+          </div>
+        )}
       </section>
 
-      {/* Image Modal */}
+      {/* Modal */}
       <AnimatePresence>
-        {selectedImageIndex !== null && (
+        {(selectedIndex !== null || editingItem) && (
           <motion.div
             className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
-            onClick={() => setSelectedImageIndex(null)}
+            onClick={() => { setSelectedIndex(null); setPlayVideo(false); setEditingItem(null); }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -130,76 +397,63 @@ export default function GallerySection() {
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <img
-                src={images[selectedImageIndex]}
-                alt="Selected"
-                className="w-full max-h-[80vh] object-contain rounded-lg"
-              />
-              <button
-                onClick={() => setSelectedImageIndex(null)}
-                className="absolute top-2 right-4 text-white text-4xl font-bold bg-black/50 rounded-full w-12 h-12 flex items-center justify-center"
-              >
-                ×
-              </button>
-              <button
-                onClick={() => handleImageNav("prev")}
-                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white text-4xl p-4 rounded-full w-12 h-12 flex items-center justify-center"
-              >
-                ‹
-              </button>
-              <button
-                onClick={() => handleImageNav("next")}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white text-4xl p-4 rounded-full w-12 h-12 flex items-center justify-center"
-              >
-                ›
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Video Modal */}
-      <AnimatePresence>
-        {selectedVideoIndex !== null && (
-          <motion.div
-            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
-            onClick={() => setSelectedVideoIndex(null)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="relative max-w-4xl w-full mx-4"
-              onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <video
-                src={videos[selectedVideoIndex]}
-                controls
-                autoPlay
-                className="w-full max-h-[80vh] object-contain rounded-lg"
-              />
-              <button
-                onClick={() => setSelectedVideoIndex(null)}
-                className="absolute top-2 right-4 text-white text-4xl font-bold bg-black/50 rounded-full w-12 h-12 flex items-center justify-center"
-              >
-                ×
-              </button>
-              <button
-                onClick={() => handleVideoNav("prev")}
-                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white text-4xl p-4 rounded-full w-12 h-12 flex items-center justify-center"
-              >
-                ‹
-              </button>
-              <button
-                onClick={() => handleVideoNav("next")}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white text-4xl p-4 rounded-full w-12 h-12 flex items-center justify-center"
-              >
-                ›
-              </button>
+              {editingItem ? (
+                <div className="bg-gray-900 p-6 rounded-lg flex flex-col gap-4">
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="p-2 rounded bg-gray-800 text-white w-full"
+                    placeholder="Title / Name"
+                  />
+                  <input type="file" onChange={handleEditFileChange} className="text-white" />
+                  <div className="flex justify-end gap-4">
+                    <button onClick={() => setEditingItem(null)} className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">Cancel</button>
+                    <button
+                      onClick={handleSaveEdit}
+                      className="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-white"
+                      disabled={savingEdit}
+                    >
+                      {savingEdit ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </div>
+              ) : selectedIndex !== null ? (
+                <>
+                  {activeTab === "photos" ? (
+                    <img
+                      src={modalItems.find((item) => item._id === selectedIndex)?.url}
+                      alt="Selected"
+                      className="w-full max-h-[80vh] object-contain rounded-lg"
+                    />
+                  ) : (
+                    <video
+                      src={modalItems.find((item) => item._id === selectedIndex)?.url}
+                      className="w-full max-h-[80vh] object-contain rounded-lg"
+                      controls
+                      autoPlay={playVideo}
+                    />
+                  )}
+                  <button
+                    onClick={() => { setSelectedIndex(null); setPlayVideo(false); }}
+                    className="absolute top-2 right-4 text-white text-4xl font-bold bg-black/50 rounded-full w-12 h-12 flex items-center justify-center"
+                  >
+                    ×
+                  </button>
+                  <button
+                    onClick={() => handleNav("prev", activeTab === "photos" ? "image" : "video")}
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white text-4xl p-4 rounded-full w-12 h-12 flex items-center justify-center"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    onClick={() => handleNav("next", activeTab === "photos" ? "image" : "video")}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white text-4xl p-4 rounded-full w-12 h-12 flex items-center justify-center"
+                  >
+                    ›
+                  </button>
+                </>
+              ) : null}
             </motion.div>
           </motion.div>
         )}

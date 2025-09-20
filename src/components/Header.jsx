@@ -9,7 +9,7 @@ const navLinks = [
   { name: "Contact", path: "/contact" },
 ];
 
-export default function Header() {
+export default function Header({ user, onProfileClick }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -27,13 +27,15 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Hamburger Menu - Mobile */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="md:hidden text-black focus:outline-none"
-        >
-          {menuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
+        {/* Hamburger - Mobile */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden text-black focus:outline-none"
+          >
+            {menuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
 
         {/* Nav Links - Desktop */}
         <nav className="hidden md:flex items-center font-agency space-x-6 text-lg sm:text-xl md:text-2xl lg:text-3xl">
@@ -52,29 +54,81 @@ export default function Header() {
               {link.name}
             </NavLink>
           ))}
+
+          {user ? (
+            <button
+              onClick={onProfileClick}
+              className="text-black font-bold hover:text-white"
+            >
+              Profile
+            </button>
+          ) : (
+            <>
+              <NavLink
+                to="/signup"
+                className="text-black font-medium hover:text-white"
+              >
+                Sign Up
+              </NavLink>
+              <NavLink
+                to="/login"
+                className="text-black font-medium hover:text-white"
+              >
+                Login
+              </NavLink>
+            </>
+          )}
         </nav>
       </div>
 
-      {/* Nav Links - Mobile Dropdown */}
+      {/* Mobile Dropdown */}
       {menuOpen && (
-  <div className="md:hidden bg-black px-6 pb-4 font-agency text-base space-y-3">
-    {navLinks.map((link) => (
-      <NavLink
-        key={link.name}
-        to={link.path}
-        onClick={() => setMenuOpen(false)}
-        className={({ isActive }) =>
-          `block transition-all duration-200 font-bold ${
-            isActive ? "text-white" : "text-red-500 hover:text-white"
-          }`
-        }
-      >
-        {link.name}
-      </NavLink>
-    ))}
-  </div>
-)}
+        <div className="md:hidden bg-black px-6 pb-4 font-agency text-base space-y-3">
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.name}
+              to={link.path}
+              onClick={() => setMenuOpen(false)}
+              className={({ isActive }) =>
+                `block transition-all duration-200 font-bold ${
+                  isActive ? "text-white" : "text-red-500 hover:text-white"
+                }`
+              }
+            >
+              {link.name}
+            </NavLink>
+          ))}
 
+          {!user ? (
+            <>
+              <NavLink
+                to="/signup"
+                onClick={() => setMenuOpen(false)}
+                className="block text-red-500 hover:text-white font-bold"
+              >
+                Sign Up
+              </NavLink>
+              <NavLink
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                className="block text-red-500 hover:text-white font-bold"
+              >
+                Login
+              </NavLink>
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                onProfileClick();
+                setMenuOpen(false);
+              }}
+              className="block text-red-500 hover:text-white font-bold"
+            >
+              Profile
+            </button>
+          )}
+        </div>
+      )}
     </header>
   );
 }
