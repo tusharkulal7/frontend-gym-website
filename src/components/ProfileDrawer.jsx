@@ -41,7 +41,7 @@ export default function ProfileDrawer({ open, onClose, user, token, onLogout }) 
     };
 
     fetchProfile();
-  }, [open, user, token]);
+  }, [open, user, token, profile]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
