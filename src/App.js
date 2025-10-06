@@ -1,136 +1,145 @@
 import "react-responsive-carousel/lib/styles/carousel.min.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProfileDrawer from "./components/ProfileDrawer";
 import ScrollToTop from "./components/ScrollToTop";
 import AllUsers from "./pages/AllUsers";
-
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Gallery from "./pages/Gallery";
 import Contact from "./pages/Contact";
-
-import Signup from "./pages/Signup";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
 function App() {
-  const [backendMessage, setBackendMessage] = useState("⏳ Connecting to backend...");
-
-  // Load user from localStorage safely
-  const [user, setUser] = useState(() => {
-    try {
-      const stored = localStorage.getItem("user");
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      localStorage.removeItem("user");
-      return null;
-    }
-  });
-
-  const [token, setToken] = useState(() => localStorage.getItem("token") || null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [backendMessage, setBackendMessage] = useState("⏳ Connecting to backend...");
+  const [currentUser, setCurrentUser] = useState(null);
+  const [token, setToken] = useState(null);
+
+  // Load user from localStorage on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    const storedToken = localStorage.getItem("token");
+    if (storedUser && storedToken) {
+      setCurrentUser(JSON.parse(storedUser));
+      setToken(storedToken);
+    }
+  }, []);
 
   // Check backend connection
   useEffect(() => {
-    if (!token) return;
+    if (!currentUser || !token) {
+      setBackendMessage("⚠️ Sign in to connect to backend");
+      return;
+    }
 
     const controller = new AbortController();
     const signal = controller.signal;
 
-    fetch("http://localhost:5000/", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      signal,
-    })
-      .then((res) => {
+    const checkBackend = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/", {
+          headers: { Authorization: `Bearer ${token}` },
+          signal,
+        });
+
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        return res.text();
-      })
-      .then((data) => setBackendMessage(`✅ ${data}`))
-      .catch((err) => {
+        const data = await res.text();
+        setBackendMessage(`✅ ${data}`);
+      } catch (err) {
         if (err.name !== "AbortError") setBackendMessage("❌ Could not connect to backend");
-      });
+      }
+    };
 
-    return () => controller.abort(); // cancel if component unmounts
-  }, [token]);
+    checkBackend();
+    return () => controller.abort();
+  }, [currentUser, token]);
 
-  // Logout handler
-  const handleLogout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    setProfileOpen(false);
+  // Handle login
+  const handleLogin = (user, token) => {
+    setCurrentUser(user);
+    setToken(token);
   };
 
-  // Login handler
-  const handleLogin = (userData, token) => {
-    setUser(userData);
-    setToken(token);
-    localStorage.setItem("user", JSON.stringify(userData));
-    localStorage.setItem("token", token);
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.clear();
+    setCurrentUser(null);
+    setToken(null);
+    setProfileOpen(false);
   };
 
   return (
     <div className="relative min-h-screen text-white font-agency">
-      {/* Background Image */}
+      {/* Background */}
       <div
         className="fixed inset-0 bg-black bg-cover bg-center z-[-1]"
         style={{ backgroundImage: "url('/images/gymbg.jpg')" }}
       />
       <div className="fixed inset-0 bg-black opacity-80 z-[-1]" />
 
-      <Router>
-        <ScrollToTop /> 
-        {/* Header with dynamic profile icon */}
-        <Header
-          user={user}
-          onProfileClick={() => setProfileOpen(true)} // Opens drawer
-        />
+      <ScrollToTop />
 
-        {/* Profile Drawer */}
-        <ProfileDrawer
-          open={profileOpen}               
-          onClose={() => setProfileOpen(false)}
-          token={token}
-          user={user}                      
-          onLogout={handleLogout}
-        />
+      {/* Header */}
+      <Header user={currentUser} onProfileClick={() => setProfileOpen(true)} />
 
-        <main className="min-h-[80vh]">
-          {/* Backend connection status */}
-          <p
-            className={`text-center py-2 font-bold ${
-              backendMessage.startsWith("✅")
-                ? "text-green-400"
-                : backendMessage.startsWith("❌")
-                ? "text-red-400"
-                : "text-yellow-400"
-            }`}
-          >
-            {backendMessage}
-          </p>
+      {/* Profile Drawer */}
+      <ProfileDrawer
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        user={currentUser}
+        token={token}
+        onLogout={handleLogout}
+      />
 
-          <Routes>
-            <Route path="/" element={<Home user={user} />} />
-            <Route path="/about" element={<About />} />
-            <Route
-              path="/gallery"
-              element={<Gallery token={token} userRole={user?.role} />}
-            />
+      <main className="min-h-[80vh]">
+        {/* Backend status */}
+        <p
+          className={`text-center py-2 font-bold ${
+            backendMessage.startsWith("✅")
+              ? "text-green-400"
+              : backendMessage.startsWith("❌")
+              ? "text-red-400"
+              : "text-yellow-400"
+          }`}
+        >
+          {backendMessage}
+        </p>
 
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
-            <Route path="/login" element={<Login onLogin={handleLogin} />} />
-            <Route path="/allusers" element={<AllUsers />} />
-          </Routes>
-        </main>
-        <Footer />
-      </Router>
+        <Routes>
+          <Route path="/" element={<Home user={currentUser} />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
+
+          {/* Protected Route */}
+          <Route
+            path="/allusers"
+            element={
+              currentUser && ["admin", "super-admin"].includes(currentUser?.role) ? (
+                <AllUsers currentUser={currentUser} token={token} />
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-lg mb-4">
+                    You need to sign in as admin to view this page
+                  </p>
+                </div>
+              )
+            }
+          />
+
+          {/* Catch-all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+
+      <Footer />
     </div>
   );
 }

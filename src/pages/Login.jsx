@@ -2,20 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const storedUser = localStorage.getItem("user");
-  const token = localStorage.getItem("token");
-
-  if (storedUser && token) {
-    onLogin(JSON.parse(storedUser), token);
-    navigate("/", { replace: true });
-    return null;
-  }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,77 +19,91 @@ export default function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/login", {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(formData),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.token) {
-        setLoading(false);
         if (res.status === 404) setMessage("User not found. Please sign up first.");
-        else if (res.status === 400 || res.status === 401)
-          setMessage(data.message || "Incorrect email or password.");
-        else setMessage(data.message || "Server error. Please try again.");
+        else setMessage(data.message || "Incorrect email or password.");
+        setLoading(false);
         return;
       }
 
-      const user = { name: data.name, email: data.email, role: data.role };
+      const user = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+      };
 
-      // ✅ Save everything to localStorage
+      // Save user info and JWT token in localStorage
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("token", data.token);
-      localStorage.setItem("name", data.name);
-      localStorage.setItem("email", data.email);
-      localStorage.setItem("role", data.role);
 
+      // Update App state via onLogin
       onLogin(user, data.token);
 
+      // Reset form state and redirect
+      setFormData({ email: "", password: "" });
+      setLoading(false);
       navigate("/", { replace: true });
     } catch (err) {
       console.error("Login error:", err);
-      setLoading(false);
       setMessage("Server error. Please try again.");
+      setLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen text-white font-bold text-xl">
-        Logging in...
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-md mx-auto mt-20 p-8 bg-gray-900 rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold mb-6 text-white text-center">Login</h2>
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <input
           type="email"
+          name="email"
           placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={formData.email}
+          onChange={handleChange}
           required
           className="p-3 text-lg rounded bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
         />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="p-3 text-lg rounded bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
+
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            name="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            className="p-3 text-lg rounded bg-gray-800 text-white placeholder-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3 top-3 text-gray-400 hover:text-white"
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </div>
+
         <button
           type="submit"
-          className="p-3 text-lg bg-green-500 text-white rounded font-bold hover:bg-green-600 transition-colors"
+          disabled={loading}
+          className={`p-3 text-lg bg-green-500 text-white rounded font-bold transition-colors hover:bg-green-600 ${
+            loading ? "opacity-70 cursor-not-allowed" : ""
+          }`}
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
       </form>
+
       {message && <p className="mt-5 text-red-400 text-lg text-center">{message}</p>}
     </div>
   );

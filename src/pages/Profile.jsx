@@ -1,43 +1,47 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-export default function Profile() {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function Profile({ user, token, onLogout }) {
+  const [profileData, setProfileData] = useState(user || null);
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
+    if (!user || !token) {
+      setProfileData(null);
+      setMessage("You need to sign in to view your profile");
       return;
     }
 
     const fetchProfile = async () => {
+      setLoading(true);
+      setMessage("Loading profile...");
       try {
-        const res = await fetch("http://localhost:5000/api/profile", {
+        const res = await fetch("http://localhost:5000/api/auth/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) {
-          throw new Error("Unauthorized");
-        }
+        if (!res.ok) throw new Error("Failed to fetch profile");
 
         const data = await res.json();
-        setProfile(data);
+        setProfileData(data.user || data);
+        setMessage("");
       } catch (err) {
         console.error(err);
-        setMessage("Please login to access profile");
-        localStorage.removeItem("token");
-        navigate("/login");
+        setProfileData(null);
+        setMessage(err.message || "Failed to load profile");
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [navigate]);
+  }, [user, token]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    onLogout?.();
+  };
 
   if (loading)
     return (
@@ -46,11 +50,11 @@ export default function Profile() {
       </p>
     );
 
-  if (!profile)
+  if (!profileData)
     return (
-      <p className="text-center mt-20 text-red-400 text-lg font-medium">
-        {message || "Profile not available"}
-      </p>
+      <div className="text-center py-10">
+        <p className="text-lg mb-4 text-white">{message}</p>
+      </div>
     );
 
   return (
@@ -58,15 +62,21 @@ export default function Profile() {
       <h2 className="text-3xl font-bold mb-6 text-center">Profile</h2>
       <div className="space-y-4 text-lg">
         <p>
-          <strong className="font-semibold">Name:</strong> {profile.name}
+          <strong className="font-semibold">Name:</strong> {profileData.name}
         </p>
         <p>
-          <strong className="font-semibold">Email:</strong> {profile.email}
+          <strong className="font-semibold">Email:</strong> {profileData.email}
         </p>
         <p>
-          <strong className="font-semibold">Role:</strong> {profile.role}
+          <strong className="font-semibold">Role:</strong> {profileData.role}
         </p>
       </div>
+      <button
+        onClick={handleLogout}
+        className="mt-6 w-full px-4 py-2 bg-red-500 rounded text-white font-semibold hover:bg-red-600 transition"
+      >
+        Logout
+      </button>
     </div>
   );
 }

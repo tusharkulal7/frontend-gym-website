@@ -2,24 +2,11 @@
 import express from "express";
 import multer from "multer";
 import { verifyToken, allowRoles } from "../middleware/authMiddleware.js";
-import { MongoClient, ObjectId } from "mongodb";
+import { ObjectId } from "mongodb";
 import path from "path";
 import fs from "fs";
 
 const router = express.Router();
-const uri = process.env.MONGO_URI;
-const client = new MongoClient(uri);
-
-let galleryCollection;
-
-// Connect to DB once
-async function connectDB() {
-  if (!galleryCollection) {
-    await client.connect();
-    const db = client.db("gymDB");
-    galleryCollection = db.collection("gallery");
-  }
-}
 
 // Multer setup
 const storage = multer.diskStorage({
@@ -35,19 +22,26 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// GET all gallery items (sorted by position then createdAt)
+// Helper to get gallery collection
+const getGalleryCollection = (req) => req.db.collection("gallery");
+
+// -----------------------------
+// GET all gallery items
+// -----------------------------
 router.get("/", async (req, res) => {
   try {
-    await connectDB();
-    const dbItems = await galleryCollection.find({}).sort({ position: 1, createdAt: 1 }).toArray();
-    res.status(200).json({ success: true, items: dbItems });
+    const galleryCollection = getGalleryCollection(req);
+    const items = await galleryCollection.find({}).sort({ position: 1, createdAt: 1 }).toArray();
+    res.status(200).json({ success: true, items });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Failed to fetch gallery", error: err.message });
   }
 });
 
+// -----------------------------
 // POST upload new gallery items
+// -----------------------------
 router.post(
   "/upload",
   verifyToken,
@@ -55,28 +49,22 @@ router.post(
   upload.array("files"),
   async (req, res) => {
     try {
-      await connectDB();
+      const galleryCollection = getGalleryCollection(req);
       const files = req.files;
-      if (!files || files.length === 0) return res.status(400).json({ success: false, message: "No files uploaded" });
+      if (!files || !files.length) return res.status(400).json({ success: false, message: "No files uploaded" });
 
       // find current max position
       const top = await galleryCollection.find({}).sort({ position: -1 }).limit(1).toArray();
-      let nextPos = top.length ? (Number(top[0].position) + 1) : 0;
+      let nextPos = top.length ? Number(top[0].position) + 1 : 0;
 
       const docs = files.map((file) => {
         const type = file.mimetype.startsWith("image") ? "image" : "video";
         const url = path.join(type === "image" ? "images/gallery" : "videos", file.filename).replace(/\\/g, "/");
-        return {
-          filename: file.filename,
-          url,
-          type,
-          createdAt: new Date(),
-          position: nextPos++,
-        };
+        return { filename: file.filename, url, type, createdAt: new Date(), position: nextPos++ };
       });
 
       const result = await galleryCollection.insertMany(docs);
-      const insertedIds = Object.values(result.insertedIds); // array of ObjectId
+      const insertedIds = Object.values(result.insertedIds);
       const insertedDocs = await galleryCollection.find({ _id: { $in: insertedIds } }).toArray();
 
       res.status(201).json({ success: true, message: "Files uploaded successfully", items: insertedDocs });
@@ -87,11 +75,12 @@ router.post(
   }
 );
 
-
-// PUT update gallery item (optional new file)
+// -----------------------------
+// PUT update gallery item
+// -----------------------------
 router.put("/:id", verifyToken, allowRoles("admin", "super-admin"), upload.single("file"), async (req, res) => {
   try {
-    await connectDB();
+    const galleryCollection = getGalleryCollection(req);
     const { id } = req.params;
     const { title } = req.body;
 
@@ -107,7 +96,7 @@ router.put("/:id", verifyToken, allowRoles("admin", "super-admin"), upload.singl
       const type = req.file.mimetype.startsWith("image") ? "image" : "video";
       const url = path.join(type === "image" ? "images/gallery" : "videos", req.file.filename).replace(/\\/g, "/");
 
-      // delete old file safely
+      // delete old file
       if (item.url) {
         const oldFilePath = path.join(process.cwd(), "public", item.url);
         if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
@@ -132,10 +121,12 @@ router.put("/:id", verifyToken, allowRoles("admin", "super-admin"), upload.singl
   }
 });
 
+// -----------------------------
 // DELETE single gallery item
+// -----------------------------
 router.delete("/:id", verifyToken, allowRoles("admin", "super-admin"), async (req, res) => {
   try {
-    await connectDB();
+    const galleryCollection = getGalleryCollection(req);
     const { id } = req.params;
     if (!ObjectId.isValid(id)) return res.status(400).json({ success: false, message: "Invalid gallery ID" });
 
@@ -155,63 +146,26 @@ router.delete("/:id", verifyToken, allowRoles("admin", "super-admin"), async (re
   }
 });
 
-// DELETE multiple gallery items (bulk)
-router.delete("/", verifyToken, allowRoles("admin", "super-admin"), async (req, res) => {
+// -----------------------------
+// PATCH reorder gallery items
+// -----------------------------
+router.patch("/reorder", verifyToken, allowRoles("admin", "super-admin"), async (req, res) => {
   try {
-    await connectDB();
-    const { ids } = req.body; // array of IDs
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "No IDs provided" });
-    }
+    const galleryCollection = getGalleryCollection(req);
+    const { items } = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ success: false, message: "Invalid items" });
 
-    const objectIds = ids.map((id) => new ObjectId(id));
-    const items = await galleryCollection.find({ _id: { $in: objectIds } }).toArray();
+    const bulkOps = items.map((it) => ({
+      updateOne: { filter: { _id: new ObjectId(it._id) }, update: { $set: { position: Number(it.position) } } },
+    }));
 
-    // Delete files safely
-    items.forEach((item) => {
-      if (item.url) {
-        const filePath = path.join(process.cwd(), "public", item.url);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      }
-    });
+    if (bulkOps.length) await galleryCollection.bulkWrite(bulkOps);
 
-    await galleryCollection.deleteMany({ _id: { $in: objectIds } });
-
-    res.status(200).json({ success: true, message: `${items.length} items deleted` });
+    res.json({ success: true, message: "Reorder saved" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: "Bulk delete failed", error: err.message });
+    res.status(500).json({ success: false, message: "Reorder failed", error: err.message });
   }
 });
-
-// PATCH reorder gallery items
-router.patch(
-  "/reorder",
-  verifyToken,
-  allowRoles("admin", "super-admin"),
-  async (req, res) => {
-    try {
-      await connectDB();
-      const { items } = req.body; // expect [{ _id: "<id>", position: 0 }, ...]
-
-      if (!Array.isArray(items)) return res.status(400).json({ success: false, message: "Invalid items" });
-
-      const bulkOps = items.map((it) => ({
-        updateOne: {
-          filter: { _id: new ObjectId(it._id) },
-          update: { $set: { position: Number(it.position) } },
-        },
-      }));
-
-      if (bulkOps.length) await galleryCollection.bulkWrite(bulkOps);
-
-      res.json({ success: true, message: "Reorder saved" });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ success: false, message: "Reorder failed", error: err.message });
-    }
-  }
-);
-
 
 export default router;

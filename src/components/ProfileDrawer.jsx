@@ -2,59 +2,53 @@ import { useEffect, useState } from "react";
 import { LogOut, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export default function ProfileDrawer({ open, onClose, token, onLogout }) {
-  const [user, setUser] = useState(null);
-  const [message, setMessage] = useState("");
+export default function ProfileDrawer({ open, onClose, user, token, onLogout }) {
+  const [profile, setProfile] = useState(user || null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch profile whenever drawer opens and token exists
+  // Fetch latest profile whenever drawer opens or user/token changes
   useEffect(() => {
-    if (!token || !open) {
-      setUser(null);
-      setMessage("");
+    if (!open || !user || !token) {
+      setProfile(user || null);
+      setLoading(false);
+      return;
+    }
+
+    // Avoid fetching if profile already exists
+    if (profile) {
+      setLoading(false);
       return;
     }
 
     const fetchProfile = async () => {
-      setMessage("Loading profile...");
+      setLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/api/profile", {
+        const res = await fetch("http://localhost:5000/api/auth/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) {
-          if (res.status === 401) {
-            throw new Error("Unauthorized. Logging out...");
-          }
-          if (res.status === 404) {
-            throw new Error("Profile not found. Logging out...");
-          }
-          throw new Error("Failed to fetch profile.");
-        }
+        if (!res.ok) throw new Error("Failed to fetch profile");
 
         const data = await res.json();
-        setUser(data);
-        setMessage("");
+        setProfile(data?.user || data || user); // fallback to user
       } catch (err) {
-        setMessage(`❌ ${err.message}`);
-        setUser(null);
-
-        // Force logout after 1.5s and redirect
-        setTimeout(() => {
-          if (onLogout) onLogout();
-          navigate("/");
-        }, 1500);
+        console.error(err);
+        setProfile(user); // fallback to App user
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [token, open, navigate, onLogout]);
+  }, [open, user, token]);
 
   const handleLogout = () => {
-    if (onLogout) onLogout();
-    setUser(null);
-    onClose();
-    navigate("/"); // redirect to homepage
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    onLogout?.();
+    onClose?.();
+    navigate("/login");
   };
 
   return (
@@ -64,7 +58,6 @@ export default function ProfileDrawer({ open, onClose, token, onLogout }) {
       }`}
     >
       <div className="p-6 flex flex-col h-full text-lg">
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="self-end text-white text-4xl font-extrabold hover:text-red-400 transition-colors"
@@ -74,42 +67,50 @@ export default function ProfileDrawer({ open, onClose, token, onLogout }) {
 
         <h2 className="text-3xl font-bold mt-4 mb-6 text-white">Profile</h2>
 
-        {/* Loading or error */}
-        {!user && <p className="text-yellow-400">{message || "Please log in."}</p>}
-
-        {/* Profile Info */}
-        {user && (
+        {!user ? (
+          <div className="text-center py-10">
+            <p className="text-lg mb-4 text-white">
+              You need to sign in to view your profile
+            </p>
+            <button
+              onClick={() => navigate("/signup")}
+              className="px-4 py-2 bg-green-500 rounded text-white font-semibold"
+            >
+              Sign Up
+            </button>
+          </div>
+        ) : (
           <>
-            <p className="text-white">
-              <strong>Name:</strong> {user.name}
-            </p>
-            <p className="text-white">
-              <strong>Email:</strong> {user.email}
-            </p>
-            <p className="text-white">
-              <strong>Role:</strong> {user.role}
-            </p>
-
-            {/* View Users button for admin/super-admin */}
-            {["admin", "super-admin"].includes(user.role.toLowerCase()) && (
-              <button
-                onClick={() => {
-                  onClose();
-                  navigate("/allusers");
-                }}
-                className="mt-6 flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded text-lg font-semibold hover:bg-blue-700"
-              >
-                <Users size={22} /> View Users
-              </button>
+            {loading && (
+              <p className="text-yellow-400 text-center">Loading profile...</p>
             )}
 
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="mt-auto flex items-center justify-center gap-2 bg-red-600 text-white py-3 px-4 rounded text-lg font-semibold hover:bg-red-700"
-            >
-              <LogOut size={22} /> Logout
-            </button>
+            {profile && !loading && (
+              <>
+                <p className="text-white"><strong>Name:</strong> {profile.name}</p>
+                <p className="text-white"><strong>Email:</strong> {profile.email}</p>
+                <p className="text-white"><strong>Role:</strong> {profile.role}</p>
+
+                {["admin", "super-admin"].includes(profile.role?.toLowerCase()) && (
+                  <button
+                    onClick={() => {
+                      onClose?.();
+                      navigate("/allusers");
+                    }}
+                    className="mt-6 flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded text-lg font-semibold hover:bg-blue-700"
+                  >
+                    <Users size={22} /> View Users
+                  </button>
+                )}
+
+                <button
+                  onClick={handleLogout}
+                  className="mt-auto flex items-center justify-center gap-2 bg-red-600 text-white py-3 px-4 rounded text-lg font-semibold hover:bg-red-700"
+                >
+                  <LogOut size={22} /> Logout
+                </button>
+              </>
+            )}
           </>
         )}
       </div>
