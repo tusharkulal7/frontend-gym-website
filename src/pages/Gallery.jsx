@@ -28,7 +28,7 @@ export default function GallerySection({ token, userRole }) {
   /** Fetch gallery items */
   const fetchGallery = useCallback(async () => {
     try {
-      const res = await axios.get("/api/gallery");
+      const res = await axios.get(`${BACKEND_URL}/api/gallery`);
       const items = res.data.items || [];
       setImages(items.filter((i) => i.type === "image"));
       setVideos(items.filter((i) => i.type === "video"));
@@ -79,6 +79,9 @@ export default function GallerySection({ token, userRole }) {
     setPlayVideo(false);
   };
 
+  const BACKEND_URL = "https://gym-website-backend-qvbe.onrender.com";
+
+
   /** File input */
   const handleFileChange = (e) => setFiles([...e.target.files]);
 
@@ -88,7 +91,7 @@ export default function GallerySection({ token, userRole }) {
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));
     try {
-      const res = await axios.post("/api/gallery/upload", formData, {
+      const res = await axios.post(`${BACKEND_URL}/api/gallery/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` },
       });
       const newItems = res.data.items || [];
@@ -120,7 +123,7 @@ export default function GallerySection({ token, userRole }) {
   const handleDeleteSelected = async () => {
     if (!selectedItems.length) return alert("Select items to delete");
     try {
-      await axios.delete("/api/gallery", {
+      await axios.delete(`${BACKEND_URL}/api/gallery`, {
         headers: { Authorization: `Bearer ${token}` },
         data: { ids: selectedItems },
       });
@@ -154,7 +157,7 @@ export default function GallerySection({ token, userRole }) {
       const formData = new FormData();
       if (editTitle) formData.append("title", editTitle);
       if (editFile) formData.append("file", editFile);
-      const res = await axios.put(`/api/gallery/${editingItem._id}`, formData, {
+      const res = await axios.put(`${BACKEND_URL}/api/gallery/${editingItem._id}`, formData, {
         headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` },
       });
       const updated = res.data.item ?? res.data;
@@ -197,7 +200,7 @@ export default function GallerySection({ token, userRole }) {
 
     try {
       await axios.put(
-        "/api/gallery/reorder",
+        `${BACKEND_URL}/api/gallery/reorder`,
         { items: currentItems.map((i, idx) => ({ _id: i._id, position: idx })) },
         { headers: { Authorization: `Bearer ${token}` } }
       );

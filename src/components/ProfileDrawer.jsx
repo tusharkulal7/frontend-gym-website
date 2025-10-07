@@ -6,6 +6,8 @@ export default function ProfileDrawer({ open, onClose, user, token, onLogout }) 
   const [profile, setProfile] = useState(user || null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
+  const BACKEND_URL = "https://gym-website-backend-qvbe.onrender.com";
 
   // Fetch latest profile whenever drawer opens or user/token changes
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function ProfileDrawer({ open, onClose, user, token, onLogout }) 
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/api/auth/profile", {
+        const res = await fetch(`${BACKEND_URL}/api/auth/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

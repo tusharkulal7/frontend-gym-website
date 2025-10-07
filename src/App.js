@@ -6,6 +6,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProfileDrawer from "./components/ProfileDrawer";
 import ScrollToTop from "./components/ScrollToTop";
+
 import AllUsers from "./pages/AllUsers";
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -13,6 +14,9 @@ import Gallery from "./pages/Gallery";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+
+// ✅ Deployed backend URL
+const BACKEND_URL = "https://gym-website-backend-qvbe.onrender.com";
 
 function App() {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -32,21 +36,15 @@ function App() {
 
   // Check backend connection
   useEffect(() => {
-    if (!currentUser || !token) {
-      setBackendMessage("⚠️ Sign in to connect to backend");
-      return;
-    }
-
     const controller = new AbortController();
     const signal = controller.signal;
 
     const checkBackend = async () => {
       try {
-        const res = await fetch("http://localhost:5000/", {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await fetch(`${BACKEND_URL}/`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
           signal,
         });
-
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         const data = await res.text();
         setBackendMessage(`✅ ${data}`);
@@ -57,17 +55,20 @@ function App() {
 
     checkBackend();
     return () => controller.abort();
-  }, [currentUser, token]);
+  }, [token]);
 
   // Handle login
   const handleLogin = (user, token) => {
     setCurrentUser(user);
     setToken(token);
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("token", token);
   };
 
   // Handle logout
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
     setCurrentUser(null);
     setToken(null);
     setProfileOpen(false);
@@ -111,14 +112,14 @@ function App() {
         </p>
 
         <Routes>
-          <Route path="/" element={<Home user={currentUser} />} />
+          <Route path="/" element={<Home user={currentUser} token={token} />} />
           <Route path="/about" element={<About />} />
-          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/gallery" element={<Gallery token={token} userRole={currentUser?.role} />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
 
-          {/* Protected Route */}
+          {/* Protected Admin Route */}
           <Route
             path="/allusers"
             element={
@@ -134,7 +135,7 @@ function App() {
             }
           />
 
-          {/* Catch-all route */}
+          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
