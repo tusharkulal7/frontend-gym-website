@@ -8,12 +8,10 @@ export const getGallery = async (req, res) => {
     const db = req.db;
     const gallery = await db.collection("gallery").find({}).toArray();
 
-    // Add URL field
+    // Add URL field (if not absolute)
     const itemsWithUrl = gallery.map((item) => ({
       ...item,
-      url: item.type === "image"
-        ? `images/gallery/${item.filename}`
-        : `videos/${item.filename}`,
+      url: item.url.startsWith("/") ? item.url : `/${item.url}`,
     }));
 
     res.json({ success: true, items: itemsWithUrl });
@@ -27,13 +25,14 @@ export const getGallery = async (req, res) => {
 export const addGallery = async (req, res) => {
   try {
     const db = req.db;
+
     if (!req.files || req.files.length === 0) {
       return res
         .status(400)
         .json({ success: false, message: "No files uploaded" });
     }
 
-    const galleryItems = req.files.map((file) => {
+    const galleryItems = req.files.map((file, index) => {
       const ext = path.extname(file.originalname).toLowerCase();
       const type = [".jpg", ".jpeg", ".png", ".gif"].includes(ext)
         ? "image"
@@ -41,14 +40,15 @@ export const addGallery = async (req, res) => {
       const folder = type === "image" ? "images/gallery" : "videos";
 
       return {
-        filename: file.filename,
+        name: file.originalname,       // original filename
+        filename: file.filename,       // saved filename
         type,
-        url: `${folder}/${file.filename}`,
+        url: `/${folder}/${file.filename}`,
+        position: index,               // initial position
         createdAt: new Date(),
       };
     });
 
-    // Insert into DB
     const result = await db.collection("gallery").insertMany(galleryItems);
 
     const insertedItems = await db
@@ -71,7 +71,7 @@ export const addGallery = async (req, res) => {
 export const deleteGallery = async (req, res) => {
   try {
     const db = req.db;
-    const { ids } = req.body; // Expecting an array of _id strings
+    const { ids } = req.body; // expecting array of _id strings
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res
@@ -79,13 +79,11 @@ export const deleteGallery = async (req, res) => {
         .json({ success: false, message: "No items selected" });
     }
 
-    // Convert to ObjectId safely
     const objectIds = ids
       .map((id) => {
         try {
           return new ObjectId(id);
-        } catch (err) {
-          console.warn(`⚠️ Invalid ID skipped: ${id}`);
+        } catch {
           return null;
         }
       })
@@ -103,12 +101,6 @@ export const deleteGallery = async (req, res) => {
       .find({ _id: { $in: objectIds } })
       .toArray();
 
-    if (!items || items.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Items not found" });
-    }
-
     // Delete files from disk
     items.forEach((item) => {
       if (!item.url) return;
@@ -123,7 +115,6 @@ export const deleteGallery = async (req, res) => {
       }
     });
 
-    // Delete from DB
     const deleteResult = await db
       .collection("gallery")
       .deleteMany({ _id: { $in: objectIds } });
@@ -143,7 +134,7 @@ export const deleteGallery = async (req, res) => {
 export const modifyGallery = async (req, res) => {
   try {
     const db = req.db;
-    const objectId = new ObjectId(req.params.id); // ID from URL
+    const objectId = new ObjectId(req.params.id);
 
     const item = await db.collection("gallery").findOne({ _id: objectId });
     if (!item) {
@@ -154,19 +145,19 @@ export const modifyGallery = async (req, res) => {
 
     const updateData = {};
 
-    // Rename (title from frontend FormData)
+    // Rename
     if (req.body.title) updateData.name = req.body.title;
 
-    // Replace file (if uploaded)
+    // Replace file
     if (req.file) {
       const ext = path.extname(req.file.originalname).toLowerCase();
       const type = [".jpg", ".jpeg", ".png", ".gif"].includes(ext)
         ? "image"
         : "video";
       const folder = type === "image" ? "images/gallery" : "videos";
-      const url = `${folder}/${req.file.filename}`;
+      const url = `/${folder}/${req.file.filename}`;
 
-      // Delete old file safely
+      // Delete old file
       if (item.url) {
         const oldPath = path.join(process.cwd(), "public", item.url);
         if (fs.existsSync(oldPath)) {

@@ -5,7 +5,6 @@ export default function Profile({ user, token, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const BACKEND_URL = "https://gym-website-backend-qvbe.onrender.com";
 
   useEffect(() => {
     if (!user || !token) {
@@ -18,7 +17,7 @@ export default function Profile({ user, token, onLogout }) {
       setLoading(true);
       setMessage("Loading profile...");
       try {
-        const res = await fetch(`${BACKEND_URL}/api/auth/profile`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

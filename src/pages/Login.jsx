@@ -8,7 +8,6 @@ export default function Login({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const BACKEND_URL = "https://gym-website-backend-qvbe.onrender.com";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,7 +20,7 @@ export default function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

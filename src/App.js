@@ -16,7 +16,6 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 
 // ✅ Deployed backend URL
-const BACKEND_URL = "https://gym-website-backend-qvbe.onrender.com";
 
 function App() {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -41,7 +40,7 @@ function App() {
 
     const checkBackend = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           signal,
         });
