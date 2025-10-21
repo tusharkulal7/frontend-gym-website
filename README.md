@@ -1,6 +1,6 @@
-# Getting Started with Create React App
+# 🏋️‍♂️ Gym Website Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern React.js frontend for gym website management with gallery and user administration features. Built with Clerk authentication, Tailwind CSS, and integrated with a Node.js/Express backend.
 
 ## Available Scripts
 

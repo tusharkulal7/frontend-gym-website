@@ -13,6 +13,7 @@ import Home from "./pages/Home";
 import About from "./pages/About";
 import Gallery from "./pages/Gallery";
 import Contact from "./pages/Contact";
+import ConnectionTest from "./components/ConnectionTest";
 
 // ✅ Deployed backend URL
 
@@ -86,6 +87,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/gallery" element={<Gallery userRole={user?.publicMetadata?.role} />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/test" element={<ConnectionTest />} />
 
           {/* Clerk Auth Routes */}
           <Route
