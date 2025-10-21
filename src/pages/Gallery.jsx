@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoreVertical } from "lucide-react";
+import { useUser, useClerk } from "@clerk/clerk-react";
 import axios from "axios";
 
-export default function GallerySection({ token, userRole }) {
+export default function GallerySection() {
+  const { user } = useUser(); // Removed isLoaded since it's unused
+  const { getToken } = useClerk();
   const [activeTab, setActiveTab] = useState("photos");
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [images, setImages] = useState([]);
@@ -22,25 +25,26 @@ export default function GallerySection({ token, userRole }) {
   const [savingEdit, setSavingEdit] = useState(false);
   const menuRef = useRef();
 
-  const normalizedRole = userRole?.toLowerCase().replace(/\s+/g, "") || "none";
+  const normalizedRole = user?.publicMetadata?.role?.toLowerCase().replace(/\s+/g, "") || "none";
   const modalItems = activeTab === "photos" ? images : videos;
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   /** Fetch gallery items */
-const fetchGallery = useCallback(async () => {
-  try {
-    const res = await axios.get(`${BACKEND_URL}/api/gallery`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const items = res.data.items || [];
-    setImages(items.filter((i) => i.type === "image"));
-    setVideos(items.filter((i) => i.type === "video"));
-  } catch (err) {
-    console.error("Failed to fetch gallery:", err);
-  }
-}, [token, BACKEND_URL]); // ✅ added BACKEND_URL
+  const fetchGallery = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const res = await axios.get(`${BACKEND_URL}/api/gallery`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const items = res.data.items || [];
+      setImages(items.filter((i) => i.type === "image"));
+      setVideos(items.filter((i) => i.type === "video"));
+    } catch (err) {
+      console.error("Failed to fetch gallery:", err);
+    }
+  }, [BACKEND_URL, getToken]);
 
-useEffect(() => { fetchGallery(); }, [fetchGallery]);
+  useEffect(() => { fetchGallery(); }, [fetchGallery]);
 
 
   /** ESC key closes modals */
@@ -89,11 +93,15 @@ useEffect(() => { fetchGallery(); }, [fetchGallery]);
   /** Upload files */
   const handleUpload = async () => {
     if (!files.length) return;
+    const token = await getToken();
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));
     try {
       const res = await axios.post(`${BACKEND_URL}/api/gallery/upload`, formData, {
-        headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`
+        },
       });
       const newItems = res.data.items || [];
       setImages((prev) => [...prev, ...newItems.filter((i) => i.type === "image")]);
@@ -122,41 +130,42 @@ useEffect(() => { fetchGallery(); }, [fetchGallery]);
   };
 
   const handleDeleteSelected = async () => {
-  if (!selectedItems.length) return alert("Select items to delete");
-  try {
-    // Delete each selected item
-    await Promise.all(
-      selectedItems.map((id) =>
-        axios.delete(`${BACKEND_URL}/api/gallery/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      )
-    );
+    if (!selectedItems.length) return alert("Select items to delete");
+    try {
+      const token = await getToken();
+      // Delete each selected item
+      await Promise.all(
+        selectedItems.map((id) =>
+          axios.delete(`${BACKEND_URL}/api/gallery/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        )
+      );
 
-    // Update frontend state
-    setImages((prev) => prev.filter((i) => !selectedItems.includes(i._id)));
-    setVideos((prev) => prev.filter((i) => !selectedItems.includes(i._id)));
+      // Update frontend state
+      setImages((prev) => prev.filter((i) => !selectedItems.includes(i._id)));
+      setVideos((prev) => prev.filter((i) => !selectedItems.includes(i._id)));
 
-    // Reset UI
-    setDeleteMode(false);
-    setSelectedItems([]);
-    setMenuOpen(false);
-  } catch (err) {
-    console.error(err);
-    alert("Delete failed");
-  }
-};
+      // Reset UI
+      setDeleteMode(false);
+      setSelectedItems([]);
+      setMenuOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed");
+    }
+  };
 
 
   /** Modify logic */
-const openEditModal = (item) => {
-  setEditingItem(item);
-  setEditTitle(item.name ?? ""); // <-- changed from item.title
-  setEditFile(null);
-  setModifyMode(false);
-  setSwapMode(false);
-  setSelectedItems([]);
-};
+  const openEditModal = (item) => {
+    setEditingItem(item);
+    setEditTitle(item.name ?? ""); // <-- changed from item.title
+    setEditFile(null);
+    setModifyMode(false);
+    setSwapMode(false);
+    setSelectedItems([]);
+  };
 
   const handleEditFileChange = (e) => setEditFile(e.target.files?.[0] || null);
 
@@ -164,11 +173,15 @@ const openEditModal = (item) => {
     if (!editingItem) return;
     setSavingEdit(true);
     try {
+      const token = await getToken();
       const formData = new FormData();
       if (editTitle) formData.append("name", editTitle);
       if (editFile) formData.append("file", editFile);
       const res = await axios.put(`${BACKEND_URL}/api/gallery/${editingItem._id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`
+        },
       });
       const updated = res.data.item ?? res.data;
       setImages((prev) => prev.map((i) => (i._id === updated._id ? updated : i)));
@@ -180,7 +193,6 @@ const openEditModal = (item) => {
     } catch (err) {
       console.error("Modify failed:", err);
       alert("Failed to modify item.");
-      try { await fetchGallery(); } catch (_) {}
     } finally {
       setSavingEdit(false);
     }
@@ -202,12 +214,15 @@ const openEditModal = (item) => {
     setSwapFirstItem(null);
     setSelectedItems([]);
     try {
+      const token = await getToken();
       await axios.patch(`${BACKEND_URL}/api/gallery/reorder`, {
-  items: currentItems.map((i, idx) => ({ _id: i._id, position: idx })),
-}, { headers: { Authorization: `Bearer ${token}` } });
-  }catch (err) {
-  console.error("Swap update failed:", err);
-}
+        items: currentItems.map((i, idx) => ({ _id: i._id, position: idx })),
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error("Swap update failed:", err);
+    }
   };
 
   /** Menu actions */

@@ -1,4 +1,5 @@
 import "react-responsive-carousel/lib/styles/carousel.min.css";
+import { SignIn, SignUp, useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -12,26 +13,14 @@ import Home from "./pages/Home";
 import About from "./pages/About";
 import Gallery from "./pages/Gallery";
 import Contact from "./pages/Contact";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
 
 // ✅ Deployed backend URL
 
 function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [backendMessage, setBackendMessage] = useState("⏳ Connecting to backend...");
-  const [currentUser, setCurrentUser] = useState(null);
-  const [token, setToken] = useState(null);
 
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedToken = localStorage.getItem("token");
-    if (storedUser && storedToken) {
-      setCurrentUser(JSON.parse(storedUser));
-      setToken(storedToken);
-    }
-  }, []);
+  const { user, isLoaded } = useUser();
 
   // Check backend connection
   useEffect(() => {
@@ -40,10 +29,7 @@ function App() {
 
     const checkBackend = async () => {
       try {
-        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          signal,
-        });
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/`, { signal });
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         const data = await res.text();
         setBackendMessage(`✅ ${data}`);
@@ -54,24 +40,11 @@ function App() {
 
     checkBackend();
     return () => controller.abort();
-  }, [token]);
+  }, []);
 
-  // Handle login
-  const handleLogin = (user, token) => {
-    setCurrentUser(user);
-    setToken(token);
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("token", token);
-  };
-
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    setCurrentUser(null);
-    setToken(null);
-    setProfileOpen(false);
-  };
+  if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="relative min-h-screen text-white font-agency">
@@ -85,15 +58,13 @@ function App() {
       <ScrollToTop />
 
       {/* Header */}
-      <Header user={currentUser} onProfileClick={() => setProfileOpen(true)} />
+      <Header user={user} onProfileClick={() => setProfileOpen(true)} />
 
       {/* Profile Drawer */}
       <ProfileDrawer
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
-        user={currentUser}
-        token={token}
-        onLogout={handleLogout}
+        user={user}
       />
 
       <main className="min-h-[80vh]">
@@ -111,26 +82,44 @@ function App() {
         </p>
 
         <Routes>
-          <Route path="/" element={<Home user={currentUser} token={token} />} />
+          <Route path="/" element={<Home user={user} />} />
           <Route path="/about" element={<About />} />
-          <Route path="/gallery" element={<Gallery token={token} userRole={currentUser?.role} />} />
+          <Route path="/gallery" element={<Gallery userRole={user?.publicMetadata?.role} />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/signup" element={<Signup onLogin={handleLogin} />} />
+
+          {/* Clerk Auth Routes */}
+          <Route
+            path="/login"
+            element={
+              <SignedOut>
+                <SignIn routing="path" path="/login" />
+              </SignedOut>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <SignedOut>
+                <SignUp routing="path" path="/signup" />
+              </SignedOut>
+            }
+          />
 
           {/* Protected Admin Route */}
           <Route
             path="/allusers"
             element={
-              currentUser && ["admin", "super-admin"].includes(currentUser?.role) ? (
-                <AllUsers currentUser={currentUser} token={token} />
-              ) : (
-                <div className="text-center py-10">
-                  <p className="text-lg mb-4">
-                    You need to sign in as admin to view this page
-                  </p>
-                </div>
-              )
+              <SignedIn>
+                {user && ["admin", "super-admin"].includes(user?.publicMetadata?.role) ? (
+                  <AllUsers currentUser={user} />
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-lg mb-4">
+                      You need to sign in as admin to view this page
+                    </p>
+                  </div>
+                )}
+              </SignedIn>
             }
           />
 

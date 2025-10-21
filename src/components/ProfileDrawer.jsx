@@ -1,55 +1,16 @@
-import { useEffect, useState } from "react";
 import { LogOut, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useClerk, useUser } from "@clerk/clerk-react";
 
-export default function ProfileDrawer({ open, onClose, user, token, onLogout }) {
-  const [profile, setProfile] = useState(user || null);
-  const [loading, setLoading] = useState(false);
+export default function ProfileDrawer({ open, onClose }) {
+  const { signOut } = useClerk();
+  const { user, isLoaded } = useUser();
   const navigate = useNavigate();
-  
 
-  // Fetch latest profile whenever drawer opens or user/token changes
-  useEffect(() => {
-    if (!open || !user || !token) {
-      setProfile(user || null);
-      setLoading(false);
-      return;
-    }
-
-    // Avoid fetching if profile already exists
-    if (profile) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchProfile = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!res.ok) throw new Error("Failed to fetch profile");
-
-        const data = await res.json();
-        setProfile(data?.user || data || user); // fallback to user
-      } catch (err) {
-        console.error(err);
-        setProfile(user); // fallback to App user
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [open, user, token, profile]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    onLogout?.();
+  const handleLogout = async () => {
+    await signOut();
     onClose?.();
-    navigate("/login");
+    navigate("/");
   };
 
   return (
@@ -68,7 +29,11 @@ export default function ProfileDrawer({ open, onClose, user, token, onLogout }) 
 
         <h2 className="text-3xl font-bold mt-4 mb-6 text-white">Profile</h2>
 
-        {!user ? (
+        {!isLoaded ? (
+          <div className="text-center py-10">
+            <p className="text-lg mb-4 text-white">Loading...</p>
+          </div>
+        ) : !user ? (
           <div className="text-center py-10">
             <p className="text-lg mb-4 text-white">
               You need to sign in to view your profile
@@ -82,36 +47,53 @@ export default function ProfileDrawer({ open, onClose, user, token, onLogout }) 
           </div>
         ) : (
           <>
-            {loading && (
-              <p className="text-yellow-400 text-center">Loading profile...</p>
+            {/* Profile Photo */}
+            <div className="flex justify-center mb-6">
+              {user.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt="Profile"
+                  className="w-20 h-20 rounded-full object-cover border-4 border-red-500"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gray-600 flex items-center justify-center border-4 border-red-500">
+                  <span className="text-2xl font-bold text-white">
+                    {user.firstName?.[0] || user.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-white">
+              <strong>Name:</strong> {user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim()}
+            </p>
+            <p className="text-white">
+              <strong>Email:</strong>{" "}
+              {user.primaryEmailAddress?.emailAddress}
+            </p>
+            <p className="text-white">
+              <strong>Role:</strong>{" "}
+              {user.publicMetadata?.role || "user"}
+            </p>
+
+            {["admin", "super-admin"].includes(user.publicMetadata?.role) && (
+              <button
+                onClick={() => {
+                  onClose?.();
+                  navigate("/allusers");
+                }}
+                className="mt-6 flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded text-lg font-semibold hover:bg-blue-700"
+              >
+                <Users size={22} /> View Users
+              </button>
             )}
 
-            {profile && !loading && (
-              <>
-                <p className="text-white"><strong>Name:</strong> {profile.name}</p>
-                <p className="text-white"><strong>Email:</strong> {profile.email}</p>
-                <p className="text-white"><strong>Role:</strong> {profile.role}</p>
-
-                {["admin", "super-admin"].includes(profile.role?.toLowerCase()) && (
-                  <button
-                    onClick={() => {
-                      onClose?.();
-                      navigate("/allusers");
-                    }}
-                    className="mt-6 flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded text-lg font-semibold hover:bg-blue-700"
-                  >
-                    <Users size={22} /> View Users
-                  </button>
-                )}
-
-                <button
-                  onClick={handleLogout}
-                  className="mt-auto flex items-center justify-center gap-2 bg-red-600 text-white py-3 px-4 rounded text-lg font-semibold hover:bg-red-700"
-                >
-                  <LogOut size={22} /> Logout
-                </button>
-              </>
-            )}
+            <button
+              onClick={handleLogout}
+              className="mt-auto flex items-center justify-center gap-2 bg-red-600 text-white py-3 px-4 rounded text-lg font-semibold hover:bg-red-700"
+            >
+              <LogOut size={22} /> Logout
+            </button>
           </>
         )}
       </div>

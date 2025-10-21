@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
+import { useUser, SignedIn } from "@clerk/clerk-react";
 
 const baseLinks = [
   { name: "Home", path: "/" },
@@ -9,8 +10,9 @@ const baseLinks = [
   { name: "Contact", path: "/contact" },
 ];
 
-export default function Header({ user, onProfileClick }) {
+export default function Header({ onProfileClick }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useUser();
 
   // ✅ user exists means logged in
   const isLoggedIn = !!user;
@@ -47,13 +49,24 @@ export default function Header({ user, onProfileClick }) {
         <nav className="hidden md:flex items-center font-agency space-x-6 text-lg sm:text-xl md:text-2xl lg:text-3xl">
           {navLinks.map((link) =>
             link.isProfile ? (
-              <button
-                key="profile"
-                onClick={onProfileClick}
-                className="text-black font-medium hover:text-white transition-all duration-300"
-              >
-                Profile
-              </button>
+              <SignedIn>
+                <button
+                  key="profile"
+                  onClick={onProfileClick}
+                  className="flex items-center space-x-2 text-black font-medium hover:text-white transition-all duration-300"
+                >
+                  {user?.imageUrl ? (
+                    <img
+                      src={user.imageUrl}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User size={24} />
+                  )}
+                  <span>Profile</span>
+                </button>
+              </SignedIn>
             ) : (
               <NavLink
                 key={link.name}
@@ -78,16 +91,27 @@ export default function Header({ user, onProfileClick }) {
         <div className="md:hidden bg-black px-6 pb-4 font-agency text-base space-y-3">
           {navLinks.map((link) =>
             link.isProfile ? (
-              <button
-                key="profile"
-                onClick={() => {
-                  onProfileClick();
-                  setMenuOpen(false);
-                }}
-                className="block text-red-500 hover:text-white font-bold transition-all"
-              >
-                Profile
-              </button>
+              <SignedIn>
+                <button
+                  key="profile"
+                  onClick={() => {
+                    onProfileClick();
+                    setMenuOpen(false);
+                  }}
+                  className="flex items-center space-x-2 text-red-500 hover:text-white font-bold transition-all"
+                >
+                  {user?.imageUrl ? (
+                    <img
+                      src={user.imageUrl}
+                      alt="Profile"
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User size={20} />
+                  )}
+                  <span>Profile</span>
+                </button>
+              </SignedIn>
             ) : (
               <NavLink
                 key={link.name}
