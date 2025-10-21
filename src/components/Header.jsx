@@ -20,7 +20,7 @@ export default function Header({ onProfileClick }) {
   // Build nav links based on login state
   const navLinks = isLoggedIn
     ? [...baseLinks, { name: "Profile", path: "#", isProfile: true }]
-    : [...baseLinks, { name: "Signup", path: "/signup" }, { name: "Login", path: "/login" }];
+    : [...baseLinks];
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-red-600 shadow-md">
@@ -46,44 +46,63 @@ export default function Header({ onProfileClick }) {
         </button>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center font-agency space-x-6 text-lg sm:text-xl md:text-2xl lg:text-3xl">
-          {navLinks.map((link) =>
-            link.isProfile ? (
-              <SignedIn>
-                <button
-                  key="profile"
-                  onClick={onProfileClick}
-                  className="flex items-center space-x-2 text-black font-medium hover:text-white transition-all duration-300"
+        <div className="hidden md:flex items-center space-x-6">
+          <nav className="flex items-center font-agency space-x-6 text-lg sm:text-xl md:text-2xl lg:text-3xl">
+            {navLinks.map((link) =>
+              link.isProfile ? (
+                <SignedIn key="profile">
+                  <button
+                    onClick={onProfileClick}
+                    className="flex items-center space-x-2 text-black font-medium hover:text-white transition-all duration-300"
+                  >
+                    {user?.imageUrl ? (
+                      <img
+                        src={user.imageUrl}
+                        alt="Profile"
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User size={24} />
+                    )}
+                    <span>Profile</span>
+                  </button>
+                </SignedIn>
+              ) : (
+                <NavLink
+                  key={link.name}
+                  to={link.path}
+                  className={({ isActive }) =>
+                    `relative transition-all duration-300 ease-in-out ${
+                      isActive
+                        ? "text-white font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-white"
+                        : "text-black font-medium hover:text-white"
+                    }`
+                  }
                 >
-                  {user?.imageUrl ? (
-                    <img
-                      src={user.imageUrl}
-                      alt="Profile"
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <User size={24} />
-                  )}
-                  <span>Profile</span>
-                </button>
-              </SignedIn>
-            ) : (
-              <NavLink
-                key={link.name}
-                to={link.path}
-                className={({ isActive }) =>
-                  `relative transition-all duration-300 ease-in-out ${
-                    isActive
-                      ? "text-white font-bold after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-white"
-                      : "text-black font-medium hover:text-white"
-                  }`
-                }
+                  {link.name}
+                </NavLink>
+              )
+            )}
+          </nav>
+          
+          {/* Login/Signup Buttons */}
+          {!isLoggedIn && (
+            <div className="flex items-center space-x-3 ml-6">
+              <Link
+                to="/login"
+                className="bg-white text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-gray-100 transition-all duration-200"
               >
-                {link.name}
-              </NavLink>
-            )
+                Login
+              </Link>
+              <Link
+                to="/signup"
+                className="bg-black text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800 transition-all duration-200"
+              >
+                Sign Up
+              </Link>
+            </div>
           )}
-        </nav>
+        </div>
       </div>
 
       {/* Mobile Dropdown */}
@@ -126,6 +145,26 @@ export default function Header({ onProfileClick }) {
                 {link.name}
               </NavLink>
             )
+          )}
+          
+          {/* Mobile Login/Signup Buttons */}
+          {!isLoggedIn && (
+            <div className="flex flex-col space-y-2 mt-4 pt-4 border-t border-gray-600">
+              <Link
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                className="bg-white text-red-600 px-4 py-2 rounded-lg font-bold text-center hover:bg-gray-100 transition-all duration-200"
+              >
+                Login
+              </Link>
+              <Link
+                to="/signup"
+                onClick={() => setMenuOpen(false)}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-center hover:bg-red-700 transition-all duration-200"
+              >
+                Sign Up
+              </Link>
+            </div>
           )}
         </div>
       )}

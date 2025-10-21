@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoreVertical } from "lucide-react";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import axios from "axios";
 
 export default function GallerySection() {
-  const { user } = useUser(); // Removed isLoaded since it's unused
-  const { getToken } = useClerk();
+  const { user, isLoaded } = useUser();
+  const { getToken, isLoaded: authLoaded } = useAuth();
   const [activeTab, setActiveTab] = useState("photos");
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [images, setImages] = useState([]);
@@ -31,8 +31,30 @@ export default function GallerySection() {
 
   /** Fetch gallery items */
   const fetchGallery = useCallback(async () => {
+    // Only fetch if Clerk is loaded and user is authenticated
+    if (!isLoaded || !authLoaded) {
+      console.log("Clerk not loaded yet, skipping gallery fetch");
+      return;
+    }
+
+    if (!user) {
+      console.log("User not authenticated, skipping gallery fetch");
+      return;
+    }
+
     try {
+      // Check if getToken is available
+      if (!getToken || typeof getToken !== 'function') {
+        console.error("getToken is not available for fetchGallery");
+        return;
+      }
+
       const token = await getToken();
+      if (!token) {
+        console.log("No token available, skipping gallery fetch");
+        return;
+      }
+
       const res = await axios.get(`${BACKEND_URL}/api/gallery`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -42,9 +64,13 @@ export default function GallerySection() {
     } catch (err) {
       console.error("Failed to fetch gallery:", err);
     }
-  }, [BACKEND_URL, getToken]);
+  }, [BACKEND_URL, getToken, isLoaded, authLoaded, user]);
 
-  useEffect(() => { fetchGallery(); }, [fetchGallery]);
+  useEffect(() => { 
+    if (isLoaded) {
+      fetchGallery(); 
+    }
+  }, [fetchGallery, isLoaded]);
 
 
   /** ESC key closes modals */
@@ -93,24 +119,53 @@ export default function GallerySection() {
   /** Upload files */
   const handleUpload = async () => {
     if (!files.length) return;
-    const token = await getToken();
-    const formData = new FormData();
-    files.forEach((file) => formData.append("files", file));
+    
+    // Check if Clerk is fully loaded
+    if (!isLoaded || !authLoaded) {
+      alert("Please wait for the page to fully load and try again.");
+      return;
+    }
+    
+    // Check if user is authenticated
+    if (!user) {
+      alert("Please sign in to upload files");
+      return;
+    }
+
+    // Check if getToken function is available
+    if (!getToken || typeof getToken !== 'function') {
+      console.error("getToken is not available");
+      alert("Authentication error. Please refresh the page and try again.");
+      return;
+    }
+
     try {
+      const token = await getToken();
+      if (!token) {
+        alert("Unable to get authentication token. Please sign in again.");
+        return;
+      }
+
+      const formData = new FormData();
+      files.forEach((file) => formData.append("files", file));
+      
       const res = await axios.post(`${BACKEND_URL}/api/gallery/upload`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`
         },
       });
+      
       const newItems = res.data.items || [];
       setImages((prev) => [...prev, ...newItems.filter((i) => i.type === "image")]);
       setVideos((prev) => [...prev, ...newItems.filter((i) => i.type === "video")]);
       setFiles([]);
       setMenuOpen(false);
+      
+      console.log("Upload successful:", newItems.length, "files uploaded");
     } catch (err) {
-      console.error(err);
-      alert("Upload failed");
+      console.error("Upload error:", err);
+      alert("Upload failed: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -131,8 +186,19 @@ export default function GallerySection() {
 
   const handleDeleteSelected = async () => {
     if (!selectedItems.length) return alert("Select items to delete");
+    
+    if (!getToken || typeof getToken !== 'function') {
+      alert("Authentication error. Please refresh the page and try again.");
+      return;
+    }
+
     try {
       const token = await getToken();
+      if (!token) {
+        alert("Unable to get authentication token. Please sign in again.");
+        return;
+      }
+
       // Delete each selected item
       await Promise.all(
         selectedItems.map((id) =>
@@ -152,7 +218,7 @@ export default function GallerySection() {
       setMenuOpen(false);
     } catch (err) {
       console.error(err);
-      alert("Delete failed");
+      alert("Delete failed: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -166,23 +232,35 @@ export default function GallerySection() {
     setSwapMode(false);
     setSelectedItems([]);
   };
-
   const handleEditFileChange = (e) => setEditFile(e.target.files?.[0] || null);
 
   const handleSaveEdit = async () => {
     if (!editingItem) return;
+    
+    if (!getToken || typeof getToken !== 'function') {
+      alert("Authentication error. Please refresh the page and try again.");
+      return;
+    }
+
     setSavingEdit(true);
     try {
       const token = await getToken();
+      if (!token) {
+        alert("Unable to get authentication token. Please sign in again.");
+        return;
+      }
+
       const formData = new FormData();
       if (editTitle) formData.append("name", editTitle);
       if (editFile) formData.append("file", editFile);
+      
       const res = await axios.put(`${BACKEND_URL}/api/gallery/${editingItem._id}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`
         },
       });
+      
       const updated = res.data.item ?? res.data;
       setImages((prev) => prev.map((i) => (i._id === updated._id ? updated : i)));
       setVideos((prev) => prev.map((i) => (i._id === updated._id ? updated : i)));
@@ -192,7 +270,7 @@ export default function GallerySection() {
       setSelectedItems([]);
     } catch (err) {
       console.error("Modify failed:", err);
-      alert("Failed to modify item.");
+      alert("Modify failed: " + (err.response?.data?.message || err.message));
     } finally {
       setSavingEdit(false);
     }
@@ -214,12 +292,16 @@ export default function GallerySection() {
     setSwapFirstItem(null);
     setSelectedItems([]);
     try {
-      const token = await getToken();
-      await axios.patch(`${BACKEND_URL}/api/gallery/reorder`, {
-        items: currentItems.map((i, idx) => ({ _id: i._id, position: idx })),
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      if (getToken && typeof getToken === 'function') {
+        const token = await getToken();
+        if (token) {
+          await axios.patch(`${BACKEND_URL}/api/gallery/reorder`, {
+            items: currentItems.map((i, idx) => ({ _id: i._id, position: idx })),
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      }
     } catch (err) {
       console.error("Swap update failed:", err);
     }

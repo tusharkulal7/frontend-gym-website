@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useClerk } from '@clerk/clerk-react';
 import { systemAPI, galleryAPI, userAPI } from '../utils/api';
 
@@ -7,7 +7,7 @@ const ConnectionTest = () => {
   const [testResults, setTestResults] = useState({});
   const [testing, setTesting] = useState(false);
 
-  const runTests = async () => {
+  const runTests = useCallback(async () => {
     setTesting(true);
     const results = {};
 
@@ -55,11 +55,11 @@ const ConnectionTest = () => {
 
     setTestResults(results);
     setTesting(false);
-  };
+  }, [getToken]);
 
   useEffect(() => {
     runTests();
-  }, []);
+  }, [runTests]);
 
   const TestResult = ({ name, result }) => (
     <div className="mb-4 p-4 border rounded-lg">

@@ -16,14 +16,33 @@ export default function AllUsers() {
   // -----------------------------
   const fetchUsers = useCallback(async () => {
     try {
+      if (!getToken || typeof getToken !== 'function') {
+        console.error("getToken is not available for fetchUsers");
+        return;
+      }
+
       const token = await getToken();
+      if (!token) {
+        console.log("No token available, skipping users fetch");
+        return;
+      }
+
       const res = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/all-users`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Failed to fetch users:", errorData);
+        setMessage(errorData.message || "Failed to fetch users");
+        return;
+      }
+      
       const data = await res.json();
+      console.log("Fetched users:", data);
       setUsers(data);
     } catch (err) {
       console.error(err);
@@ -52,8 +71,17 @@ export default function AllUsers() {
     if (user.publicMetadata?.role !== "super-admin") return;
     if (!window.confirm(`Promote ${email} to admin?`)) return;
 
+    if (!getToken || typeof getToken !== 'function') {
+      alert("Authentication error. Please refresh the page and try again.");
+      return;
+    }
+
     try {
       const token = await getToken();
+      if (!token) {
+        alert("Unable to get authentication token. Please sign in again.");
+        return;
+      }
       const res = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/promote/${id}`,
         {
@@ -78,8 +106,17 @@ export default function AllUsers() {
     if (user.publicMetadata?.role !== "super-admin") return;
     if (!window.confirm(`Demote ${email} to user?`)) return;
 
+    if (!getToken || typeof getToken !== 'function') {
+      alert("Authentication error. Please refresh the page and try again.");
+      return;
+    }
+
     try {
       const token = await getToken();
+      if (!token) {
+        alert("Unable to get authentication token. Please sign in again.");
+        return;
+      }
       const res = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/demote/${id}`,
         {
@@ -104,8 +141,17 @@ export default function AllUsers() {
     if (user.publicMetadata?.role !== "super-admin") return;
     if (!window.confirm(`Delete ${email}?`)) return;
 
+    if (!getToken || typeof getToken !== 'function') {
+      alert("Authentication error. Please refresh the page and try again.");
+      return;
+    }
+
     try {
       const token = await getToken();
+      if (!token) {
+        alert("Unable to get authentication token. Please sign in again.");
+        return;
+      }
       const res = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/delete/${id}`,
         {

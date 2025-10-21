@@ -1,5 +1,5 @@
 import "react-responsive-carousel/lib/styles/carousel.min.css";
-import { SignIn, SignUp, useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
+import { useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -7,6 +7,9 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProfileDrawer from "./components/ProfileDrawer";
 import ScrollToTop from "./components/ScrollToTop";
+import CustomSignIn from "./components/CustomSignIn";
+import CustomSignUp from "./components/CustomSignUp";
+import AdminSetup from "./components/AdminSetup";
 
 import AllUsers from "./pages/AllUsers";
 import Home from "./pages/Home";
@@ -88,13 +91,14 @@ function App() {
           <Route path="/gallery" element={<Gallery userRole={user?.publicMetadata?.role} />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/test" element={<ConnectionTest />} />
+          <Route path="/admin-setup" element={<AdminSetup />} />
 
           {/* Clerk Auth Routes */}
           <Route
             path="/login"
             element={
               <SignedOut>
-                <SignIn routing="path" path="/login" />
+                <CustomSignIn />
               </SignedOut>
             }
           />
@@ -102,7 +106,7 @@ function App() {
             path="/signup"
             element={
               <SignedOut>
-                <SignUp routing="path" path="/signup" />
+                <CustomSignUp />
               </SignedOut>
             }
           />
