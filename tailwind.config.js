@@ -8,6 +8,10 @@ module.exports = {
       fontFamily: {
         agency: ['"Agency FB"', 'sans-serif'],
       },
+      screens: {
+        'xs': '375px',
+        '3xl': '1600px',
+      },
     },
   },
   plugins: [],

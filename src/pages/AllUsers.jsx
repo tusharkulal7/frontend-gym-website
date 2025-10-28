@@ -16,8 +16,16 @@ export default function AllUsers() {
   // -----------------------------
   const fetchUsers = useCallback(async () => {
     try {
+      setLoading(true);
+      setMessage("");
+      
+      if (!isLoaded || !user) {
+        setMessage("User session loading...");
+        return;
+      }
+
       if (!getToken || typeof getToken !== 'function') {
-        console.error("getToken is not available for fetchUsers");
+        setMessage("Initializing authentication...");
         return;
       }
 
@@ -42,7 +50,8 @@ export default function AllUsers() {
       }
       
       const data = await res.json();
-      console.log("Fetched users:", data);
+      console.log("Fetched users (full response):", data);
+      console.log("Number of users received:", data.length);
       setUsers(data);
     } catch (err) {
       console.error(err);
@@ -50,11 +59,33 @@ export default function AllUsers() {
     } finally {
       setLoading(false);
     }
-  }, [getToken]);
+  }, [getToken, isLoaded, user]);
 
+  // Set timeout for fetch operation
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!user) return;
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        setMessage("Taking longer than expected. Please refresh or check your connection.");
+      }
+    }, 8000);
+    
+    return () => clearTimeout(loadingTimeout);
+  }, [loading]);
+
+  // Clerk initialization and user fetch
+  useEffect(() => {
+    let initTimeout;
+    
+    if (!isLoaded || !user) return;
+
+    if (!getToken || typeof getToken !== 'function') {
+      initTimeout = setTimeout(() => {
+        if (getToken && typeof getToken === 'function') {
+          fetchUsers();
+        }
+      }, 1000);
+      return () => clearTimeout(initTimeout);
+    }
 
     if (!["admin", "super-admin"].includes(user.publicMetadata?.role)) {
       navigate("/", { replace: true });
@@ -62,7 +93,12 @@ export default function AllUsers() {
     }
 
     fetchUsers();
-  }, [user, isLoaded, navigate, fetchUsers]);
+  }, [user, isLoaded, navigate, fetchUsers, getToken]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {};
+  }, []);
 
   // -----------------------------
   // Promote, Demote, Delete

@@ -85,20 +85,14 @@ export default function Header({ onProfileClick }) {
             )}
           </nav>
           
-          {/* Login/Signup Buttons */}
+          {/* Login Button */}
           {!isLoggedIn && (
-            <div className="flex items-center space-x-3 ml-6">
+            <div className="flex items-center ml-6">
               <Link
                 to="/login"
                 className="bg-white text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-gray-100 transition-all duration-200"
               >
                 Login
-              </Link>
-              <Link
-                to="/signup"
-                className="bg-black text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800 transition-all duration-200"
-              >
-                Sign Up
               </Link>
             </div>
           )}
@@ -137,8 +131,10 @@ export default function Header({ onProfileClick }) {
                 to={link.path}
                 onClick={() => setMenuOpen(false)}
                 className={({ isActive }) =>
-                  `block transition-all duration-200 font-bold ${
-                    isActive ? "text-white" : "text-red-500 hover:text-white"
+                  `block py-3 font-bold transition-all duration-300 ${
+                    isActive
+                      ? "text-red-400 border-l-4 border-red-400 pl-4"
+                      : "text-white hover:text-red-400 hover:border-l-4 hover:border-red-400 hover:pl-4"
                   }`
                 }
               >
@@ -146,23 +142,14 @@ export default function Header({ onProfileClick }) {
               </NavLink>
             )
           )}
-          
-          {/* Mobile Login/Signup Buttons */}
           {!isLoggedIn && (
-            <div className="flex flex-col space-y-2 mt-4 pt-4 border-t border-gray-600">
+            <div className="pt-4">
               <Link
                 to="/login"
                 onClick={() => setMenuOpen(false)}
                 className="bg-white text-red-600 px-4 py-2 rounded-lg font-bold text-center hover:bg-gray-100 transition-all duration-200"
               >
                 Login
-              </Link>
-              <Link
-                to="/signup"
-                onClick={() => setMenuOpen(false)}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-center hover:bg-red-700 transition-all duration-200"
-              >
-                Sign Up
               </Link>
             </div>
           )}

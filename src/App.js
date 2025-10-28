@@ -1,6 +1,6 @@
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Header from "./components/Header";
@@ -8,7 +8,6 @@ import Footer from "./components/Footer";
 import ProfileDrawer from "./components/ProfileDrawer";
 import ScrollToTop from "./components/ScrollToTop";
 import CustomSignIn from "./components/CustomSignIn";
-import CustomSignUp from "./components/CustomSignUp";
 import AdminSetup from "./components/AdminSetup";
 
 import AllUsers from "./pages/AllUsers";
@@ -22,39 +21,18 @@ import ConnectionTest from "./components/ConnectionTest";
 
 function App() {
   const [profileOpen, setProfileOpen] = useState(false);
-  const [backendMessage, setBackendMessage] = useState("⏳ Connecting to backend...");
 
   const { user, isLoaded } = useUser();
-
-  // Check backend connection
-  useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-
-    const checkBackend = async () => {
-      try {
-        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/`, { signal });
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        const data = await res.text();
-        setBackendMessage(`✅ ${data}`);
-      } catch (err) {
-        if (err.name !== "AbortError") setBackendMessage("❌ Could not connect to backend");
-      }
-    };
-
-    checkBackend();
-    return () => controller.abort();
-  }, []);
 
   if (!isLoaded) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="relative min-h-screen text-white font-agency">
+    <div className="relative min-h-screen text-white font-agency overflow-x-hidden">
       {/* Background */}
       <div
-        className="fixed inset-0 bg-black bg-cover bg-center z-[-1]"
+        className="fixed inset-0 bg-black bg-cover bg-center bg-no-repeat z-[-1]"
         style={{ backgroundImage: "url('/images/gymbg.jpg')" }}
       />
       <div className="fixed inset-0 bg-black opacity-80 z-[-1]" />
@@ -72,18 +50,6 @@ function App() {
       />
 
       <main className="min-h-[80vh]">
-        {/* Backend status */}
-        <p
-          className={`text-center py-2 font-bold ${
-            backendMessage.startsWith("✅")
-              ? "text-green-400"
-              : backendMessage.startsWith("❌")
-              ? "text-red-400"
-              : "text-yellow-400"
-          }`}
-        >
-          {backendMessage}
-        </p>
 
         <Routes>
           <Route path="/" element={<Home user={user} />} />
@@ -99,14 +65,6 @@ function App() {
             element={
               <SignedOut>
                 <CustomSignIn />
-              </SignedOut>
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <SignedOut>
-                <CustomSignUp />
               </SignedOut>
             }
           />

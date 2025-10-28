@@ -96,8 +96,25 @@ const AdminSetup = () => {
       }
 
       console.log('Token available:', !!token);
+      console.log('Token preview:', token.substring(0, 50) + '...');
       console.log('User role:', user?.publicMetadata?.role);
-      setMessage(`✅ Auth working! Role: ${user?.publicMetadata?.role || 'user'}`);
+
+      // Test the token with backend
+      const testResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/test-token`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (testResponse.ok) {
+        const testData = await testResponse.json();
+        setMessage(`✅ Auth working! Role: ${testData.user.role || 'user'} | Backend: ✅`);
+      } else {
+        const errorData = await testResponse.json();
+        setMessage(`❌ Backend auth failed: ${errorData.message}`);
+      }
     } catch (error) {
       setMessage(`❌ Auth error: ${error.message}`);
     } finally {

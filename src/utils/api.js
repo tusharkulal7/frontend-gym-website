@@ -24,23 +24,74 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
+    // Enhanced error logging
+    const errorInfo = {
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      url: error.config?.url,
+      method: error.config?.method?.toUpperCase(),
+      timestamp: new Date().toISOString()
+    };
+    
+    console.error('API Error:', errorInfo);
+    
+    // Handle specific error cases
+    if (error.response?.status === 401) {
+      // Token expired or invalid - could trigger logout
+      console.warn('Authentication failed - token may be expired');
+    } else if (error.response?.status === 403) {
+      console.warn('Access forbidden - insufficient permissions');
+    } else if (error.response?.status >= 500) {
+      console.error('Server error - please try again later');
+    }
+    
     return Promise.reject(error);
   }
 );
 
+// Input sanitization helper
+const sanitizeInput = (input) => {
+  if (typeof input === 'string') {
+    return input
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/on\w+\s*=/gi, '')
+      .trim();
+  }
+  return input;
+};
+
+// Validate file before upload
+const validateFile = (file, options = {}) => {
+  const {
+    maxSize = 10 * 1024 * 1024, // 10MB
+    allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'video/mp4']
+  } = options;
+  
+  if (file.size > maxSize) {
+    throw new Error(`File size exceeds ${maxSize / 1024 / 1024}MB limit`);
+  }
+  
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error(`File type ${file.type} is not allowed`);
+  }
+  
+  return true;
+};
+
 // Gallery API functions
 export const galleryAPI = {
-  // Get all gallery items
-  getAll: async (token) => {
-    const response = await api.get('/api/gallery', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+  // Get all gallery items (public access)
+  getAll: async () => {
+    const response = await api.get('/api/gallery');
     return response.data;
   },
 
   // Upload files
   upload: async (files, token) => {
+    // Validate files before upload
+    files.forEach(file => validateFile(file));
+    
     const formData = new FormData();
     files.forEach(file => formData.append('files', file));
     
@@ -56,8 +107,11 @@ export const galleryAPI = {
   // Update gallery item
   update: async (id, data, token) => {
     const formData = new FormData();
-    if (data.name) formData.append('name', data.name);
-    if (data.file) formData.append('file', data.file);
+    if (data.name) formData.append('name', sanitizeInput(data.name));
+    if (data.file) {
+      validateFile(data.file);
+      formData.append('file', data.file);
+    }
 
     const response = await api.put(`/api/gallery/${id}`, formData, {
       headers: {

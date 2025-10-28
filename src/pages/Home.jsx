@@ -22,17 +22,17 @@ export default function Home() {
   return (
     <>
       {/* Hero Section */}
-      <section className="text-white body-font pt-32">
-        <div className="container mx-auto px-5 py-20 flex flex-col-reverse lg:flex-row items-center gap-10 lg:gap-20">
+      <section className="text-white body-font pt-20 sm:pt-24 lg:pt-32">
+        <div className="responsive-container py-12 sm:py-16 lg:py-20 flex flex-col-reverse lg:flex-row items-center gap-8 sm:gap-10 lg:gap-20">
           {/* Text Section */}
           <div className="w-full lg:w-1/2 flex flex-col justify-center text-center lg:text-left">
-            <h1 className="font-agency text-5xl sm:text-6xl md:text-7xl font-bold leading-tight">
+            <h1 className="font-agency text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight">
               WELCOME TO OUR GYM
               <br />
               BUILD YOUR DREAM PHYSIQUE
             </h1>
 
-            <p className="mt-8 text-xl sm:text-2xl md:text-3xl font-agency font-medium text-slate-300">
+            <p className="mt-6 sm:mt-8 text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl font-agency font-medium text-slate-300">
                We provide a motivating atmosphere to help you build muscle and find supportive gym partners. Sculpt your body and achieve your dream physique.
 Our expert trainers are here to guide you every step of the way, from personalized workout plans to nutritional advice tailored just for you.
 Whether you're a beginner or an experienced lifter, our community welcomes all fitness levels with open arms.

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MoreVertical } from "lucide-react";
 import { useUser, useAuth } from "@clerk/clerk-react";
-import axios from "axios";
+import { galleryAPI } from "../utils/api";
 
 export default function GallerySection() {
   const { user, isLoaded } = useUser();
@@ -27,50 +27,25 @@ export default function GallerySection() {
 
   const normalizedRole = user?.publicMetadata?.role?.toLowerCase().replace(/\s+/g, "") || "none";
   const modalItems = activeTab === "photos" ? images : videos;
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   /** Fetch gallery items */
   const fetchGallery = useCallback(async () => {
-    // Only fetch if Clerk is loaded and user is authenticated
-    if (!isLoaded || !authLoaded) {
-      console.log("Clerk not loaded yet, skipping gallery fetch");
-      return;
-    }
-
-    if (!user) {
-      console.log("User not authenticated, skipping gallery fetch");
-      return;
-    }
-
     try {
-      // Check if getToken is available
-      if (!getToken || typeof getToken !== 'function') {
-        console.error("getToken is not available for fetchGallery");
-        return;
-      }
-
-      const token = await getToken();
-      if (!token) {
-        console.log("No token available, skipping gallery fetch");
-        return;
-      }
-
-      const res = await axios.get(`${BACKEND_URL}/api/gallery`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const items = res.data.items || [];
+      console.log("Fetching gallery items...");
+      const response = await galleryAPI.getAll();
+      console.log("Gallery response:", response);
+      const items = response.items || [];
+      console.log("Gallery items found:", items.length);
       setImages(items.filter((i) => i.type === "image"));
       setVideos(items.filter((i) => i.type === "video"));
     } catch (err) {
       console.error("Failed to fetch gallery:", err);
     }
-  }, [BACKEND_URL, getToken, isLoaded, authLoaded, user]);
+  }, []);
 
   useEffect(() => { 
-    if (isLoaded) {
-      fetchGallery(); 
-    }
-  }, [fetchGallery, isLoaded]);
+    fetchGallery(); 
+  }, [fetchGallery]);
 
 
   /** ESC key closes modals */
@@ -146,26 +121,21 @@ export default function GallerySection() {
         return;
       }
 
-      const formData = new FormData();
-      files.forEach((file) => formData.append("files", file));
+      console.log("🚀 Starting upload with galleryAPI...");
+      const response = await galleryAPI.upload(files, token);
       
-      const res = await axios.post(`${BACKEND_URL}/api/gallery/upload`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`
-        },
-      });
-      
-      const newItems = res.data.items || [];
-      setImages((prev) => [...prev, ...newItems.filter((i) => i.type === "image")]);
-      setVideos((prev) => [...prev, ...newItems.filter((i) => i.type === "video")]);
+      const newItems = response.items || [];
+      setImages(prev => [...prev, ...newItems.filter(item => item.type === "image")]);
+      setVideos(prev => [...prev, ...newItems.filter(item => item.type === "video")]);
       setFiles([]);
       setMenuOpen(false);
       
-      console.log("Upload successful:", newItems.length, "files uploaded");
+      console.log("✅ Upload successful:", newItems.length, "files uploaded");
+      alert(`✅ Successfully uploaded ${newItems.length} file(s)!`);
     } catch (err) {
-      console.error("Upload error:", err);
-      alert("Upload failed: " + (err.response?.data?.message || err.message));
+      console.error("❌ Upload error:", err);
+      console.error("Error details:", err.response?.data);
+      alert("Upload failed: " + (err.response?.data?.message || err.message || "Network error"));
     }
   };
 
@@ -201,11 +171,7 @@ export default function GallerySection() {
 
       // Delete each selected item
       await Promise.all(
-        selectedItems.map((id) =>
-          axios.delete(`${BACKEND_URL}/api/gallery/${id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        )
+        selectedItems.map((id) => galleryAPI.delete(id, token))
       );
 
       // Update frontend state
@@ -250,16 +216,11 @@ export default function GallerySection() {
         return;
       }
 
-      const formData = new FormData();
-      if (editTitle) formData.append("name", editTitle);
-      if (editFile) formData.append("file", editFile);
+      const updateData = {};
+      if (editTitle) updateData.name = editTitle;
+      if (editFile) updateData.file = editFile;
       
-      const res = await axios.put(`${BACKEND_URL}/api/gallery/${editingItem._id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`
-        },
-      });
+      const res = await galleryAPI.update(editingItem._id, updateData, token);
       
       const updated = res.data.item ?? res.data;
       setImages((prev) => prev.map((i) => (i._id === updated._id ? updated : i)));
@@ -295,11 +256,10 @@ export default function GallerySection() {
       if (getToken && typeof getToken === 'function') {
         const token = await getToken();
         if (token) {
-          await axios.patch(`${BACKEND_URL}/api/gallery/reorder`, {
-            items: currentItems.map((i, idx) => ({ _id: i._id, position: idx })),
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          await galleryAPI.reorder(
+            currentItems.map((i, idx) => ({ _id: i._id, position: idx })),
+            token
+          );
         }
       }
     } catch (err) {
@@ -340,9 +300,9 @@ export default function GallerySection() {
 
   return (
     <>
-      <section className="py-16 pt-32 px-4 text-white relative">
+      <section className="py-8 sm:py-12 lg:py-16 pt-20 sm:pt-24 lg:pt-32 px-3 sm:px-4 lg:px-6 text-white relative min-h-screen">
         {(normalizedRole === "super-admin" || normalizedRole === "admin") && (
-          <div className="fixed top-[160px] right-4 z-20 md:top-[180px]" ref={menuRef}>
+          <div className="fixed top-[80px] xs:top-[100px] sm:top-[120px] md:top-[140px] lg:top-[160px] right-3 sm:right-4 z-20" ref={menuRef}>
             <button onClick={() => setMenuOpen(prev => !prev)} className="p-2 rounded-full hover:bg-gray-800 bg-gray-900">
               <MoreVertical size={28} />
             </button>
@@ -368,32 +328,32 @@ export default function GallerySection() {
           </div>
         )}
 
-        <h1 className="font-agency underline text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold text-center">
+        <h1 className="font-agency underline text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-center">
           Explore the Library
         </h1>
-        <p className="font-agency text-gray-600 text-xl sm:text-2xl md:text-3xl lg:text-3xl text-slate-400 text-center mt-4 max-w-2xl mx-auto">
-          A visual collection of our most recent works – better transformation and fitness.
-        </p>
 
-        {/* Tabs */}
-        <div className="flex justify-center mt-10 gap-4">
+        {/* Tab Navigation */}
+        <div className="mt-8 sm:mt-12 lg:mt-16 mb-6 sm:mb-8 flex justify-center px-2">
           {["photos", "videos"].map(tab => (
             <button
               key={tab}
-              onClick={() => { setActiveTab(tab); setSelectedIndex(null); setPlayVideo(false); }}
-              className={`px-6 md:px-8 py-2 md:py-3 font-agency text-xl md:text-2xl lg:text-3xl rounded-full border-2 transition-all duration-300 ${
-                activeTab === tab ? "bg-red-600 text-white border-red-600" : "bg-transparent text-red-500 border-red-500 hover:bg-red-600 hover:text-white"
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 mx-1 sm:mx-2 rounded-lg font-bold text-sm sm:text-base lg:text-lg transition-all ${
+                activeTab === tab
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-800 text-gray-400 hover:bg-gray-700"
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              <span className="hidden xs:inline">{tab.charAt(0).toUpperCase() + tab.slice(1)} ({tab === "photos" ? images.length : videos.length})</span>
+              <span className="xs:hidden">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
             </button>
           ))}
         </div>
 
         {/* Gallery Grid */}
-        <div className="mt-12 max-w-6xl mx-auto">
+        <div className="mt-6 sm:mt-8 lg:mt-12 responsive-container">
           {modalItems.length ? (
-            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
               {modalItems.map(item => {
                 const isSwapSelected = swapFirstItem?._id === item._id;
                 return (
@@ -411,12 +371,12 @@ export default function GallerySection() {
                       />
                     )}
                     {activeTab === "photos" ? (
-                      <img src={item.url} alt={item.name || "Gallery Image"} className="w-full object-cover rounded-lg hover:-translate-y-1 transition-all duration-300 h-40 sm:h-48 md:h-64 lg:h-72" />
+                      <img src={item.url} alt={item.name || "Gallery Image"} className="w-full object-cover rounded-lg hover:-translate-y-1 transition-all duration-300 h-32 xs:h-36 sm:h-40 md:h-48 lg:h-56 xl:h-64" />
                     ) : (
-                      <div className="relative w-full h-40 sm:h-48 md:h-64 lg:h-72">
+                      <div className="relative w-full h-32 xs:h-36 sm:h-40 md:h-48 lg:h-56 xl:h-64">
                         <video src={item.url} className="w-full h-full object-cover rounded-lg pointer-events-none" preload="metadata" playsInline muted />
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="bg-black/50 rounded-full w-14 h-14 flex items-center justify-center text-white opacity-80 text-3xl">▶</div>
+                          <div className="bg-black/50 rounded-full w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 flex items-center justify-center text-white opacity-80 text-lg sm:text-xl md:text-2xl lg:text-3xl">▶</div>
                         </div>
                       </div>
                     )}
