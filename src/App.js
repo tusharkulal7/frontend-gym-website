@@ -8,6 +8,7 @@ import Footer from "./components/Footer";
 import ProfileDrawer from "./components/ProfileDrawer";
 import ScrollToTop from "./components/ScrollToTop";
 import CustomSignIn from "./components/CustomSignIn";
+import CustomSignUp from "./components/CustomSignUp";
 import AdminSetup from "./components/AdminSetup";
 
 import AllUsers from "./pages/AllUsers";
@@ -65,6 +66,14 @@ function App() {
             element={
               <SignedOut>
                 <CustomSignIn />
+              </SignedOut>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <SignedOut>
+                <CustomSignUp />
               </SignedOut>
             }
           />

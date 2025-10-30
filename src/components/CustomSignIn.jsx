@@ -26,6 +26,7 @@ const CustomSignIn = () => {
         <SignIn 
           routing="path" 
           path="/login"
+          signUpUrl="/signup"
           appearance={{
             elements: {
               // Center the whole widget and limit width
