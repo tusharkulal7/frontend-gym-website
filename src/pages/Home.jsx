@@ -2,7 +2,7 @@ import { useKeenSlider } from "keen-slider/react";
 import "keen-slider/keen-slider.min.css";
 import Services from "../components/Services"; // 👈 import the section
 import Trainers from "../components/Trainers";
-import GymStats from "../components/GymStats"; 
+import GymStats from "../components/GymStats";
 
 export default function Home() {
   const [sliderRef] = useKeenSlider({
