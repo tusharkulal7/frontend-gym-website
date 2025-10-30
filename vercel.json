@@ -16,11 +16,27 @@
       "dest": "/static/$1"
     },
     {
-      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot))",
+      "src": "^/service-worker.js$",
+      "dest": "/service-worker.js"
+    },
+    {
+      "src": "^/manifest.json$",
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "^/favicon.ico$",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "^/logo(.*).(png|svg|jpg|jpeg|gif|ico)$",
+      "dest": "/logo$1.$2"
+    },
+    {
+      "src": "^/(.*\\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot))$",
       "dest": "/$1"
     },
     {
-      "src": "/(.*)",
+      "src": "^/(.*)$",
       "dest": "/index.html"
     }
   ],
