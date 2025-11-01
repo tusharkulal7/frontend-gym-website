@@ -3,6 +3,7 @@ import "keen-slider/keen-slider.min.css";
 import Services from "../components/Services"; // 👈 import the section
 import Trainers from "../components/Trainers";
 import GymStats from "../components/GymStats";
+import { CAROUSEL_IMAGES } from "../constants/carouselImages";
 
 export default function Home() {
   const [sliderRef] = useKeenSlider({
@@ -50,12 +51,13 @@ Experience the difference—train hard, recover smart, and grow stronger every d
               ref={sliderRef}
               className="keen-slider aspect-video rounded-xl overflow-hidden border-4 border-red-600 shadow-[0_0_20px_5px_rgba(255,0,0,0.7)]"
             >
-              {[0, 1, 2, 4, 5].map((i) => (
-                <div key={i} className="keen-slider__slide">
+              {CAROUSEL_IMAGES.map((imageUrl, index) => (
+                <div key={index} className="keen-slider__slide">
                   <img
-                    src={`/images/${i}.jpg`}
-                    alt={`Slide ${i + 1}`}
+                    src={imageUrl}
+                    alt={`Gym Slide ${index + 1}`}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 </div>
               ))}

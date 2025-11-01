@@ -371,7 +371,16 @@ export default function GallerySection() {
                       />
                     )}
                     {activeTab === "photos" ? (
-                      <img src={item.url} alt={item.name || "Gallery Image"} className="w-full object-cover rounded-lg hover:-translate-y-1 transition-all duration-300 h-32 xs:h-36 sm:h-40 md:h-48 lg:h-56 xl:h-64" />
+                      <img 
+                        src={item.url} 
+                        alt={item.name || "Gallery Image"} 
+                        className="w-full object-cover rounded-lg hover:-translate-y-1 transition-all duration-300 h-32 xs:h-36 sm:h-40 md:h-48 lg:h-56 xl:h-64"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/images/gymbg.jpg'; // Fallback image
+                        }}
+                      />
                     ) : (
                       <div className="relative w-full h-32 xs:h-36 sm:h-40 md:h-48 lg:h-56 xl:h-64">
                         <video src={item.url} className="w-full h-full object-cover rounded-lg pointer-events-none" preload="metadata" playsInline muted />
@@ -428,9 +437,25 @@ export default function GallerySection() {
               ) : selectedIndex !== null ? (
                 <>
                   {activeTab === "photos" ? (
-                    <img src={modalItems.find(item => item._id === selectedIndex)?.url} alt="Selected" className="w-full max-h-[80vh] object-contain rounded-lg" />
+                    <img 
+                      src={modalItems.find(item => item._id === selectedIndex)?.url} 
+                      alt="Selected" 
+                      className="w-full max-h-[80vh] object-contain rounded-lg"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/images/gymbg.jpg';
+                      }}
+                    />
                   ) : (
-                    <video src={modalItems.find(item => item._id === selectedIndex)?.url} className="w-full max-h-[80vh] object-contain rounded-lg" controls autoPlay={playVideo} />
+                    <video 
+                      src={modalItems.find(item => item._id === selectedIndex)?.url} 
+                      className="w-full max-h-[80vh] object-contain rounded-lg" 
+                      controls 
+                      autoPlay={playVideo}
+                      onError={(e) => {
+                        console.error('Video failed to load:', e.target.src);
+                      }}
+                    />
                   )}
                   <button onClick={() => { setSelectedIndex(null); setPlayVideo(false); }} className="absolute top-2 right-4 text-white text-4xl font-bold bg-black/50 rounded-full w-12 h-12 flex items-center justify-center">×</button>
                   <button onClick={() => handleNav("prev", activeTab === "photos" ? "image" : "video")} className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white text-4xl p-4 rounded-full w-12 h-12 flex items-center justify-center">‹</button>
