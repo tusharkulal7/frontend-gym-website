@@ -3,13 +3,11 @@
 // in the backend server directory
 
 export const CAROUSEL_IMAGES = [
-  // Placeholder URLs - Run uploadCarouselToCloudinary.js script to get actual URLs
-  // Then replace these with the Cloudinary URLs from the script output
-  '/images/0.jpg',
-  '/images/1.jpg',
-  '/images/2.jpg',
-  '/images/4.jpg',
-  '/images/5.jpg'
+  "https://res.cloudinary.com/dtslb5uic/image/upload/v1762180708/gym-website/carousel/0.jpg",
+  "https://res.cloudinary.com/dtslb5uic/image/upload/v1762180746/gym-website/carousel/1.jpg",
+  "https://res.cloudinary.com/dtslb5uic/image/upload/v1762180776/gym-website/carousel/2.jpg",
+  "https://res.cloudinary.com/dtslb5uic/image/upload/v1762180825/gym-website/carousel/4.jpg",
+  "https://res.cloudinary.com/dtslb5uic/image/upload/v1762180877/gym-website/carousel/5.jpg",
 ];
 
 // Note: After running the upload script, replace the above with actual Cloudinary URLs like:
