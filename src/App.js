@@ -1,23 +1,27 @@
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { STATIC_IMAGES } from "./constants/staticImages";
+import ErrorBoundary from "./components/ErrorBoundary";
+import LoadingSpinner from "./components/LoadingSpinner";
 
+// Import critical components immediately
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProfileDrawer from "./components/ProfileDrawer";
 import ScrollToTop from "./components/ScrollToTop";
-import CustomSignIn from "./components/CustomSignIn";
-import CustomSignUp from "./components/CustomSignUp";
-import AdminSetup from "./components/AdminSetup";
 
-import AllUsers from "./pages/AllUsers";
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Gallery from "./pages/Gallery";
-import Contact from "./pages/Contact";
-import ConnectionTest from "./components/ConnectionTest";
+// Lazy load pages for better performance
+const Home = lazy(() => import("./pages/Home"));
+const About = lazy(() => import("./pages/About"));
+const Gallery = lazy(() => import("./pages/Gallery"));
+const Contact = lazy(() => import("./pages/Contact"));
+const AllUsers = lazy(() => import("./pages/AllUsers"));
+const CustomSignIn = lazy(() => import("./components/CustomSignIn"));
+const CustomSignUp = lazy(() => import("./components/CustomSignUp"));
+const AdminSetup = lazy(() => import("./components/AdminSetup"));
+const ConnectionTest = lazy(() => import("./components/ConnectionTest"));
 
 // ✅ Deployed backend URL
 
@@ -27,11 +31,12 @@ function App() {
   const { user, isLoaded } = useUser();
 
   if (!isLoaded) {
-    return <div>Loading...</div>;
+    return <LoadingSpinner message="Loading gym website..." />;
   }
 
   return (
-    <div className="relative min-h-screen text-white font-agency overflow-x-hidden">
+    <ErrorBoundary>
+      <div className="relative min-h-screen text-white font-agency overflow-x-hidden">
       {/* Background */}
       <div
         className="fixed inset-0 bg-black bg-cover bg-center bg-no-repeat z-[-1]"
@@ -52,8 +57,8 @@ function App() {
       />
 
       <main className="min-h-[80vh]">
-
-        <Routes>
+        <Suspense fallback={<LoadingSpinner message="Loading page..." />}>
+          <Routes>
           <Route path="/" element={<Home user={user} />} />
           <Route path="/about" element={<About />} />
           <Route path="/gallery" element={<Gallery userRole={user?.publicMetadata?.role} />} />
@@ -99,11 +104,13 @@ function App() {
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
 

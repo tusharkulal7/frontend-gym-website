@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import logger from "../utils/logger";
 
 export default function Profile({ user, token, onLogout }) {
   const [profileData, setProfileData] = useState(user || null);
@@ -27,7 +28,7 @@ export default function Profile({ user, token, onLogout }) {
         setProfileData(data.user || data);
         setMessage("");
       } catch (err) {
-        console.error(err);
+        logger.error(err);
         setProfileData(null);
         setMessage(err.message || "Failed to load profile");
       } finally {

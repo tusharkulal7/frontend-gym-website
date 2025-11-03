@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
+import logger from '../utils/logger';
 
 const AdminSetup = () => {
   const { getToken, isLoaded: authLoaded } = useAuth();
@@ -95,9 +96,9 @@ const AdminSetup = () => {
         return;
       }
 
-      console.log('Token available:', !!token);
-      console.log('Token preview:', token.substring(0, 50) + '...');
-      console.log('User role:', user?.publicMetadata?.role);
+      logger.debug('Token available:', !!token);
+      logger.debug('Token preview:', token.substring(0, 50) + '...');
+      logger.info('User role:', user?.publicMetadata?.role);
 
       // Test the token with backend
       const testResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/test-token`, {

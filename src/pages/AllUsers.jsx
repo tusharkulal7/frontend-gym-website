@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
+import logger from "../utils/logger";
 
 export default function AllUsers() {
   const { user, isLoaded } = useUser();
@@ -31,7 +32,7 @@ export default function AllUsers() {
 
       const token = await getToken();
       if (!token) {
-        console.log("No token available, skipping users fetch");
+        logger.warn("No token available, skipping users fetch");
         return;
       }
 
@@ -44,17 +45,17 @@ export default function AllUsers() {
       
       if (!res.ok) {
         const errorData = await res.json();
-        console.error("Failed to fetch users:", errorData);
+        logger.error("Failed to fetch users:", errorData);
         setMessage(errorData.message || "Failed to fetch users");
         return;
       }
       
       const data = await res.json();
-      console.log("Fetched users (full response):", data);
-      console.log("Number of users received:", data.length);
+      logger.debug("Fetched users (full response):", data);
+      logger.info("Number of users received:", data.length);
       setUsers(data);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       setMessage(err.message || "Failed to fetch users");
     } finally {
       setLoading(false);

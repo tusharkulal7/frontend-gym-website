@@ -1,17 +1,19 @@
-export async function promoteUser(userId, token) {
+import logger from './logger';
+
+export async function promoteUserToAdmin(userId, clerkToken) {
   try {
     const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/promote/${userId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${clerkToken}`
       }
     });
 
     if (!response.ok) throw new Error('Failed to promote user');
     return await response.json();
   } catch (error) {
-    console.error('Error promoting user:', error);
+    logger.error('Error promoting user:', error);
     throw error;
   }
 }
@@ -29,7 +31,7 @@ export async function demoteUser(userId, token) {
     if (!response.ok) throw new Error('Failed to demote user');
     return await response.json();
   } catch (error) {
-    console.error('Error demoting user:', error);
+    logger.error('Error demoting user:', error);
     throw error;
   }
 }
@@ -47,7 +49,7 @@ export async function deleteUser(userId, token) {
     if (!response.ok) throw new Error('Failed to delete user');
     return await response.json();
   } catch (error) {
-    console.error('Error deleting user:', error);
+    logger.error('Error deleting user:', error);
     throw error;
   }
 }

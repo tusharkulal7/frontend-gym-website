@@ -4,6 +4,7 @@ import { MoreVertical } from "lucide-react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { galleryAPI } from "../utils/api";
 import { STATIC_IMAGES } from "../constants/staticImages";
+import logger from "../utils/logger";
 
 export default function GallerySection() {
   const { user, isLoaded } = useUser();
@@ -32,15 +33,15 @@ export default function GallerySection() {
   /** Fetch gallery items */
   const fetchGallery = useCallback(async () => {
     try {
-      console.log("Fetching gallery items...");
+      logger.info("Fetching gallery items...");
       const response = await galleryAPI.getAll();
-      console.log("Gallery response:", response);
+      logger.debug("Gallery response:", response);
       const items = response.items || [];
-      console.log("Gallery items found:", items.length);
+      logger.success("Gallery items found:", items.length);
       setImages(items.filter((i) => i.type === "image"));
       setVideos(items.filter((i) => i.type === "video"));
     } catch (err) {
-      console.error("Failed to fetch gallery:", err);
+      logger.error("Failed to fetch gallery:", err);
     }
   }, []);
 
@@ -110,7 +111,7 @@ export default function GallerySection() {
 
     // Check if getToken function is available
     if (!getToken || typeof getToken !== 'function') {
-      console.error("getToken is not available");
+      logger.error("getToken is not available");
       alert("Authentication error. Please refresh the page and try again.");
       return;
     }
@@ -122,7 +123,7 @@ export default function GallerySection() {
         return;
       }
 
-      console.log("🚀 Starting upload with galleryAPI...");
+      logger.info("Starting upload with galleryAPI...");
       const response = await galleryAPI.upload(files, token);
       
       const newItems = response.items || [];
@@ -131,11 +132,11 @@ export default function GallerySection() {
       setFiles([]);
       setMenuOpen(false);
       
-      console.log("✅ Upload successful:", newItems.length, "files uploaded");
+      logger.success("Upload successful:", newItems.length, "files uploaded");
       alert(`✅ Successfully uploaded ${newItems.length} file(s)!`);
     } catch (err) {
-      console.error("❌ Upload error:", err);
-      console.error("Error details:", err.response?.data);
+      logger.error("Upload error:", err);
+      logger.error("Error details:", err.response?.data);
       alert("Upload failed: " + (err.response?.data?.message || err.message || "Network error"));
     }
   };
@@ -184,7 +185,7 @@ export default function GallerySection() {
       setSelectedItems([]);
       setMenuOpen(false);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       alert("Delete failed: " + (err.response?.data?.message || err.message));
     }
   };
@@ -231,7 +232,7 @@ export default function GallerySection() {
       setEditFile(null);
       setSelectedItems([]);
     } catch (err) {
-      console.error("Modify failed:", err);
+      logger.error("Modify failed:", err);
       alert("Modify failed: " + (err.response?.data?.message || err.message));
     } finally {
       setSavingEdit(false);
@@ -264,7 +265,7 @@ export default function GallerySection() {
         }
       }
     } catch (err) {
-      console.error("Swap update failed:", err);
+      logger.error("Swap update failed:", err);
     }
   };
 
@@ -454,7 +455,7 @@ export default function GallerySection() {
                       controls 
                       autoPlay={playVideo}
                       onError={(e) => {
-                        console.error('Video failed to load:', e.target.src);
+                        logger.error('Video failed to load:', e.target.src);
                       }}
                     />
                   )}

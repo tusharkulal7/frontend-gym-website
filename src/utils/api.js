@@ -1,5 +1,6 @@
 // API utility functions for frontend-backend communication
 import axios from 'axios';
+import logger from './logger';
 
 const API_BASE_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -33,16 +34,16 @@ api.interceptors.response.use(
       timestamp: new Date().toISOString()
     };
     
-    console.error('API Error:', errorInfo);
+    logger.error('API Error:', errorInfo);
     
     // Handle specific error cases
     if (error.response?.status === 401) {
       // Token expired or invalid - could trigger logout
-      console.warn('Authentication failed - token may be expired');
+      logger.warn('Authentication failed - token may be expired');
     } else if (error.response?.status === 403) {
-      console.warn('Access forbidden - insufficient permissions');
+      logger.warn('Access forbidden - insufficient permissions');
     } else if (error.response?.status >= 500) {
-      console.error('Server error - please try again later');
+      logger.error('Server error - please try again later');
     }
     
     return Promise.reject(error);
