@@ -2,6 +2,7 @@ import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { useUser, SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { STATIC_IMAGES } from "./constants/staticImages";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -34,7 +35,7 @@ function App() {
       {/* Background */}
       <div
         className="fixed inset-0 bg-black bg-cover bg-center bg-no-repeat z-[-1]"
-        style={{ backgroundImage: "url('/images/gymbg.jpg')" }}
+        style={{ backgroundImage: `url('${STATIC_IMAGES.gymBackground}')` }}
       />
       <div className="fixed inset-0 bg-black opacity-80 z-[-1]" />
 

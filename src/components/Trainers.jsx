@@ -1,10 +1,12 @@
+import { STATIC_IMAGES } from "../constants/staticImages";
+
 export default function Trainers() {
   const trainers = [
     {
       name: "RAVI KULAI",
       role: "Head Trainer",
       bio: "Winner of Mr.Karnataka and Champion of Champions in 2017.",
-      image: "/images/master.jpg",
+      image: STATIC_IMAGES.masterTrainer,
     },
   ];
 

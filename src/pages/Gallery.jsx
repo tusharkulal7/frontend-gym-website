@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MoreVertical } from "lucide-react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { galleryAPI } from "../utils/api";
+import { STATIC_IMAGES } from "../constants/staticImages";
 
 export default function GallerySection() {
   const { user, isLoaded } = useUser();
@@ -378,7 +379,7 @@ export default function GallerySection() {
                         loading="lazy"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = '/images/gymbg.jpg'; // Fallback image
+                          e.target.src = STATIC_IMAGES.gymBackground; // Fallback image
                         }}
                       />
                     ) : (
@@ -443,7 +444,7 @@ export default function GallerySection() {
                       className="w-full max-h-[80vh] object-contain rounded-lg"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = '/images/gymbg.jpg';
+                        e.target.src = STATIC_IMAGES.gymBackground;
                       }}
                     />
                   ) : (

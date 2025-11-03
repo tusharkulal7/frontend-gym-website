@@ -1,5 +1,6 @@
 import React from 'react';
 import { SignIn } from '@clerk/clerk-react';
+import { STATIC_IMAGES } from '../constants/staticImages';
 
 const CustomSignIn = () => {
   return (
@@ -9,7 +10,7 @@ const CustomSignIn = () => {
         <div className="text-center mb-4 sm:mb-6">
           <div className="flex justify-center mb-3 sm:mb-4">
             <img
-              src="/images/gym-banner.png"
+              src={STATIC_IMAGES.logo}
               alt="Gym Logo"
               className="w-14 h-14 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full object-cover border-2 sm:border-3 border-red-500"
             />

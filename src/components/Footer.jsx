@@ -1,3 +1,5 @@
+import { STATIC_IMAGES } from "../constants/staticImages";
+
 export default function Footer() {
   return (
     <footer className="text-white body-font bg-red-600">
@@ -6,7 +8,7 @@ export default function Footer() {
         <div className="flex flex-col items-center justify-center mb-4 sm:mb-0">
   <div className="flex items-center space-x-4">
     <img
-      src="/images/gym-banner.png"
+      src={STATIC_IMAGES.logo}
       alt="Gym Logo"
       className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
     />

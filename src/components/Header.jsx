@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Menu, X, User } from "lucide-react";
 import { useUser, SignedIn } from "@clerk/clerk-react";
+import { STATIC_IMAGES } from "../constants/staticImages";
 
 const baseLinks = [
   { name: "Home", path: "/" },
@@ -28,7 +29,7 @@ export default function Header({ onProfileClick }) {
         {/* Logo */}
         <Link to="/" className="flex items-center text-white">
           <img
-            src="/images/gym-banner.png"
+            src={STATIC_IMAGES.logo}
             alt="Gym Logo"
             className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover"
           />
