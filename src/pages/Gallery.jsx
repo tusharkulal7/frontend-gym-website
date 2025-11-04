@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Loader2 } from "lucide-react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { galleryAPI } from "../utils/api";
 import { STATIC_IMAGES } from "../constants/staticImages";
@@ -25,6 +25,7 @@ export default function GallerySection() {
   const [editTitle, setEditTitle] = useState("");
   const [editFile, setEditFile] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const menuRef = useRef();
 
   const normalizedRole = user?.publicMetadata?.role?.toLowerCase().replace(/\s+/g, "") || "none";
@@ -33,6 +34,7 @@ export default function GallerySection() {
   /** Fetch gallery items */
   const fetchGallery = useCallback(async () => {
     try {
+      setIsLoading(true);
       logger.info("Fetching gallery items...");
       const response = await galleryAPI.getAll();
       logger.debug("Gallery response:", response);
@@ -42,6 +44,8 @@ export default function GallerySection() {
       setVideos(items.filter((i) => i.type === "video"));
     } catch (err) {
       logger.error("Failed to fetch gallery:", err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -354,7 +358,13 @@ export default function GallerySection() {
 
         {/* Gallery Grid */}
         <div className="mt-6 sm:mt-8 lg:mt-12 responsive-container">
-          {modalItems.length ? (
+          {/* Gallery Grid */}
+          <div className="relative">
+            {isLoading && (
+              <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center z-10">
+                <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+              </div>
+            )}
             <div className="grid grid-cols-3 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
               {modalItems.map(item => {
                 const isSwapSelected = swapFirstItem?._id === item._id;
@@ -395,7 +405,8 @@ export default function GallerySection() {
                 );
               })}
             </div>
-          ) : (
+          </div>
+          {modalItems.length === 0 && (
             <p className="text-center text-gray-400 mt-8">No {activeTab} available.</p>
           )}
         </div>

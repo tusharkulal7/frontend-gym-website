@@ -17,7 +17,15 @@ export default function Footer() {
     </p>
   </div>
   <p className="text-sm sm:text-base text-gray-100 text-center mt-1">
-    Designed and Maintained by: Tushar
+    Designed and Maintained by:{" "}
+    <a 
+      href="https://portfolio-web-xi-vert.vercel.app/" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-white hover:underline font-medium"
+    >
+      Tushar
+    </a>
   </p>
 </div>
 
