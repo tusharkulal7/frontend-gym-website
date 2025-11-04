@@ -12,7 +12,6 @@ export default function AllUsers() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
-  const retryCount = useRef(0);
   const maxRetries = 5;
 
   // -----------------------------
@@ -209,7 +208,7 @@ export default function AllUsers() {
       isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [user, isLoaded, isSignedIn, navigate, getToken]);
+  }, [user, isLoaded, isSignedIn, navigate, getToken, fetchUsers]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
