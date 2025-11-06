@@ -11,6 +11,14 @@ export default function AllUsers() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmData, setConfirmData] = useState({
+    action: null,
+    id: null,
+    email: "",
+    title: "",
+    message: ""
+  });
   const navigate = useNavigate();
   const maxRetries = 5;
 
@@ -216,25 +224,65 @@ export default function AllUsers() {
   }, []);
 
   // -----------------------------
-  // Promote, Demote, Delete
+  // Show Confirmation Dialog
   // -----------------------------
-  const handlePromote = async (id, email) => {
+  const showConfirmation = (action, id, email) => {
     if (user.publicMetadata?.role !== "super-admin") return;
-    if (!window.confirm(`Promote ${email} to admin?`)) return;
+    
+    const actionConfig = {
+      promote: {
+        title: "Promote User",
+        message: `Promote ${email} to admin?`
+      },
+      demote: {
+        title: "Demote User",
+        message: `Demote ${email} to user?`
+      }
+    };
 
-    if (!getToken || typeof getToken !== 'function') {
-      alert("Authentication error. Please refresh the page and try again.");
-      return;
-    }
+    setConfirmData({
+      action,
+      id,
+      email,
+      title: actionConfig[action].title,
+      message: actionConfig[action].message
+    });
+    setShowConfirm(true);
+  };
+
+  // Handle confirmation dialog close
+  const handleCloseConfirm = () => {
+    setShowConfirm(false);
+    setConfirmData({
+      action: null,
+      id: null,
+      email: "",
+      title: "",
+      message: ""
+    });
+  };
+
+  // Handle confirmation
+  const handleConfirm = async () => {
+    const { action, id } = confirmData;
+    setShowConfirm(false);
+    setMessage("Processing...");
 
     try {
+      if (!getToken || typeof getToken !== 'function') {
+        throw new Error("Authentication error. Please refresh the page and try again.");
+      }
+
       const token = await getToken();
       if (!token) {
-        alert("Unable to get authentication token. Please sign in again.");
-        return;
+        throw new Error("Unable to get authentication token. Please sign in again.");
       }
+
+      const endpoint = action === 'promote' ? 'promote' : 'demote';
+      const newRole = action === 'promote' ? 'admin' : 'user';
+      
       const res = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/auth/promote/${id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/auth/${endpoint}/${id}`,
         {
           method: "PUT",
           headers: {
@@ -243,49 +291,43 @@ export default function AllUsers() {
           },
         }
       );
-      const data = await res.json();
-      alert(data.message);
-      setUsers((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, role: "admin" } : u))
+
+      // Check if response is JSON
+      const contentType = res.headers.get("content-type");
+      let data;
+      
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(`Invalid response format: ${text.substring(0, 100)}...`);
+      }
+
+      if (!res.ok) {
+        throw new Error(data.message || `Failed to ${action} user`);
+      }
+
+      // Update UI
+      setUsers(prev =>
+        prev.map(u => (u.id === id ? { ...u, role: newRole } : u))
       );
+      
+      setMessage(data.message || `User ${action}d successfully`);
+      setTimeout(() => setMessage(""), 5000);
     } catch (err) {
-      alert(err.message || "Failed to promote");
+      console.error(`${action} error:`, err);
+      setMessage(err.message || `Failed to ${action} user`);
+      setTimeout(() => setMessage(""), 5000);
     }
   };
 
-  const handleDemote = async (id, email) => {
-    if (user.publicMetadata?.role !== "super-admin") return;
-    if (!window.confirm(`Demote ${email} to user?`)) return;
+  // Handle promote/demote button clicks
+  const handlePromote = (id, email) => {
+    showConfirmation('promote', id, email);
+  };
 
-    if (!getToken || typeof getToken !== 'function') {
-      alert("Authentication error. Please refresh the page and try again.");
-      return;
-    }
-
-    try {
-      const token = await getToken();
-      if (!token) {
-        alert("Unable to get authentication token. Please sign in again.");
-        return;
-      }
-      const res = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/auth/demote/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const data = await res.json();
-      alert(data.message);
-      setUsers((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, role: "user" } : u))
-      );
-    } catch (err) {
-      alert(err.message || "Failed to demote");
-    }
+  const handleDemote = (id, email) => {
+    showConfirmation('demote', id, email);
   };
 
   const handleDelete = async (id, email) => {
@@ -330,6 +372,74 @@ export default function AllUsers() {
   );
 
   // -----------------------------
+  // Confirmation Dialog Component
+  // -----------------------------
+  const ConfirmationDialog = () => {
+    if (!showConfirm) return null;
+    
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 50
+      }}>
+        <div style={{
+          backgroundColor: 'black',
+          padding: '1.5rem',
+          borderRadius: '0.5rem',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+          maxWidth: '28rem',
+          width: '100%',
+          border: '1px solid #333'
+        }}>
+          <h3 style={{
+            fontSize: '1.25rem',
+            fontWeight: 'bold',
+            marginBottom: '1rem',
+            color: 'white'
+          }}>{confirmData.title}</h3>
+          <p style={{ marginBottom: '1.5rem', color: '#e5e7eb' }}>{confirmData.message}</p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+            <button
+              onClick={handleCloseConfirm}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#333',
+                borderRadius: '0.375rem',
+                color: 'white',
+                border: '1px solid #555',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#dc2626',
+                borderRadius: '0.375rem',
+                color: 'white',
+                border: '1px solid #ef4444',
+                cursor: 'pointer'
+              }}
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // -----------------------------
   // Render
   // -----------------------------
   if (!isLoaded || !user) {
@@ -341,7 +451,8 @@ export default function AllUsers() {
   }
 
   return (
-    <div className="pt-24 px-6">
+    <div className="pt-24 px-6 relative">
+      <ConfirmationDialog />
       <h1 className="text-3xl font-bold mb-6 text-white">
         All Registered Users
       </h1>
@@ -354,10 +465,20 @@ export default function AllUsers() {
         className="border p-2 mb-4 w-full max-w-md text-black rounded-md"
       />
 
+      {message && (
+        <div style={{
+          padding: '0.75rem',
+          marginBottom: '1rem',
+          borderRadius: '0.375rem',
+          backgroundColor: message.includes('error') || message.includes('fail') ? '#fef2f2' : '#f0fdf4',
+          color: message.includes('error') || message.includes('fail') ? '#dc2626' : '#15803d',
+          border: `1px solid ${message.includes('error') || message.includes('fail') ? '#fecaca' : '#bbf7d0'}`
+        }}>
+          {message}
+        </div>
+      )}
       {loading ? (
-        <p className="text-white">Loading users...</p>
-      ) : message ? (
-        <p className="text-red-400">{message}</p>
+        <p style={{ color: 'white' }}>Loading users...</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full border border-gray-300">

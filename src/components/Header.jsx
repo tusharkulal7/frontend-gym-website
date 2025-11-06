@@ -56,6 +56,7 @@ export default function Header({ onProfileClick }) {
                     onClick={onProfileClick}
                     className="flex items-center space-x-2 text-black font-medium hover:text-white transition-all duration-300"
                   >
+                    <span>Profile</span>
                     {user?.imageUrl ? (
                       <img
                         src={user.imageUrl}
@@ -65,7 +66,6 @@ export default function Header({ onProfileClick }) {
                     ) : (
                       <User size={24} />
                     )}
-                    <span>Profile</span>
                   </button>
                 </SignedIn>
               ) : (
@@ -91,7 +91,7 @@ export default function Header({ onProfileClick }) {
             <div className="flex items-center ml-6">
               <Link
                 to="/login"
-                className="bg-white text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-gray-100 transition-all duration-200"
+                className="bg-black text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-800 transition-all duration-200 text-xl"
               >
                 Login
               </Link>
@@ -148,7 +148,7 @@ export default function Header({ onProfileClick }) {
               <Link
                 to="/login"
                 onClick={() => setMenuOpen(false)}
-                className="bg-white text-red-600 px-4 py-2 rounded-lg font-bold text-center hover:bg-gray-100 transition-all duration-200"
+                className="bg-black text-white px-6 py-3 rounded-lg font-bold text-center hover:bg-gray-800 transition-all duration-200 text-xl"
               >
                 Login
               </Link>
