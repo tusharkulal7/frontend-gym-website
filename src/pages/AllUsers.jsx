@@ -264,7 +264,14 @@ export default function AllUsers() {
 
   // Handle confirmation
   const handleConfirm = async () => {
-    const { action, id } = confirmData;
+    const { action } = confirmData;
+    
+    if (action === 'delete') {
+      await handleDelete();
+      return;
+    }
+    
+    const { id } = confirmData;
     setShowConfirm(false);
     setMessage("Processing...");
 
@@ -292,7 +299,7 @@ export default function AllUsers() {
         }
       );
 
-      // Check if response is JSON
+      // Handle non-JSON responses
       const contentType = res.headers.get("content-type");
       let data;
       
@@ -300,14 +307,17 @@ export default function AllUsers() {
         data = await res.json();
       } else {
         const text = await res.text();
-        throw new Error(`Invalid response format: ${text.substring(0, 100)}...`);
+        if (!res.ok) {
+          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+        }
+        data = { message: `User ${action}d successfully` };
       }
 
       if (!res.ok) {
         throw new Error(data.message || `Failed to ${action} user`);
       }
 
-      // Update UI
+      // Update UI immediately
       setUsers(prev =>
         prev.map(u => (u.id === id ? { ...u, role: newRole } : u))
       );
@@ -330,21 +340,35 @@ export default function AllUsers() {
     showConfirmation('demote', id, email);
   };
 
-  const handleDelete = async (id, email) => {
+  // Show delete confirmation dialog
+  const showDeleteConfirmation = (id, email) => {
     if (user.publicMetadata?.role !== "super-admin") return;
-    if (!window.confirm(`Delete ${email}?`)) return;
+    
+    setConfirmData({
+      action: 'delete',
+      id,
+      email,
+      title: "Delete User",
+      message: `Are you sure you want to delete ${email}? This action cannot be undone.`
+    });
+    setShowConfirm(true);
+  };
 
-    if (!getToken || typeof getToken !== 'function') {
-      alert("Authentication error. Please refresh the page and try again.");
-      return;
-    }
+  const handleDelete = async () => {
+    const { id } = confirmData;
+    setShowConfirm(false);
+    setMessage("Processing...");
 
     try {
+      if (!getToken || typeof getToken !== 'function') {
+        throw new Error("Authentication error. Please refresh the page and try again.");
+      }
+
       const token = await getToken();
       if (!token) {
-        alert("Unable to get authentication token. Please sign in again.");
-        return;
+        throw new Error("Unable to get authentication token. Please sign in again.");
       }
+
       const res = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/delete/${id}`,
         {
@@ -355,11 +379,33 @@ export default function AllUsers() {
           },
         }
       );
-      const data = await res.json();
-      alert(data.message);
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+
+      // Handle non-JSON responses
+      const contentType = res.headers.get("content-type");
+      let data;
+      
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+        }
+        data = { message: "User deleted successfully" };
+      }
+
+      if (!res.ok) {
+        throw new Error(data.message || `Failed to delete user`);
+      }
+
+      // Update UI immediately
+      setUsers(prev => prev.filter(u => u.id !== id));
+      setMessage(data.message || "User deleted successfully");
+      setTimeout(() => setMessage(""), 5000);
     } catch (err) {
-      alert(err.message || "Failed to delete");
+      console.error("Delete error:", err);
+      setMessage(err.message || "Failed to delete user");
+      setTimeout(() => setMessage(""), 5000);
     }
   };
 
@@ -522,7 +568,7 @@ export default function AllUsers() {
                     )}
                     {user.publicMetadata?.role === "super-admin" && u.role !== "super-admin" && (
                       <button
-                        onClick={() => handleDelete(u.id, u.email)}
+                        onClick={() => showDeleteConfirmation(u.id, u.email)}
                         className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md"
                       >
                         Delete
