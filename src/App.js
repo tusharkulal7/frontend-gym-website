@@ -11,6 +11,11 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProfileDrawer from "./components/ProfileDrawer";
 import ScrollToTop from "./components/ScrollToTop";
+import CustomSignIn from "./components/CustomSignIn";
+import CustomSignUp from "./components/CustomSignUp";
+import OAuthCallback from "./components/OAuthCallback";
+import VerificationPage from "./components/VerificationPage";
+import AdminSetup from "./components/AdminSetup";
 
 // Lazy load pages for better performance
 const Home = lazy(() => import("./pages/Home"));
@@ -18,9 +23,6 @@ const About = lazy(() => import("./pages/About"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Contact = lazy(() => import("./pages/Contact"));
 const AllUsers = lazy(() => import("./pages/AllUsers"));
-const CustomSignIn = lazy(() => import("./components/CustomSignIn"));
-const CustomSignUp = lazy(() => import("./components/CustomSignUp"));
-const AdminSetup = lazy(() => import("./components/AdminSetup"));
 const ConnectionTest = lazy(() => import("./components/ConnectionTest"));
 
 // ✅ Deployed backend URL
@@ -80,6 +82,24 @@ function App() {
             element={
               <SignedOut>
                 <CustomSignUp />
+              </SignedOut>
+            }
+          />
+          <Route
+            path="/sso-callback"
+            element={
+              <SignedOut>
+                <OAuthCallback />
+              </SignedOut>
+            }
+          />
+          
+          {/* Verification Page */}
+          <Route
+            path="/verification"
+            element={
+              <SignedOut>
+                <VerificationPage />
               </SignedOut>
             }
           />

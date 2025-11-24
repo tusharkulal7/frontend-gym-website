@@ -1,8 +1,56 @@
-import React from 'react';
-import { SignIn } from '@clerk/clerk-react';
+import React, { useState } from 'react';
+import { useSignIn } from '@clerk/clerk-react';
 import { STATIC_IMAGES } from '../constants/staticImages';
 
 const CustomSignIn = () => {
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, isLoaded } = useSignIn();
+
+  const handleError = (error) => {
+    console.error('Authentication error:', error);
+    let errorMessage = 'Failed to sign in. Please try again.';
+    
+    if (error.errors?.[0]?.code === 'form_identifier_not_found') {
+      errorMessage = 'No account found with this email. Please sign up first.';
+    } else if (error.errors?.[0]?.code === 'form_password_incorrect') {
+      errorMessage = 'Incorrect password. Please try again or reset your password.';
+    } else if (error.errors?.[0]?.code === 'form_code_incorrect') {
+      errorMessage = 'Invalid verification code. Please try again or request a new one.';
+    } else if (error.errors?.[0]?.message) {
+      errorMessage = error.errors[0].message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    console.log('Displaying error to user:', errorMessage);
+    setError(errorMessage);
+    setIsLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!isLoaded || !signIn) {
+      setError('Authentication service is not ready yet. Please try again in a moment.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const redirectUrl = `${window.location.origin}/sso-callback`;
+      const redirectUrlComplete = `${window.location.origin}/`;
+
+      await signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl,
+        redirectUrlComplete,
+      });
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-black flex items-center justify-center px-3 sm:px-4 lg:px-6 py-4 pt-24 sm:pt-28 pb-8">
       <div className="w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl mx-auto">
@@ -18,49 +66,55 @@ const CustomSignIn = () => {
           <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-white mb-2 font-agency">
             EVOLUTION GYM & FITNESS
           </h1>
-          <p className="text-gray-300 text-sm sm:text-base lg:text-lg">
+          <p className="text-gray-300 text-sm sm:text-base lg:text-lg mb-2">
             Sign in to access your fitness journey
           </p>
+          {isLoading && (
+            <div className="flex items-center justify-center mb-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500 mr-2"></div>
+              <span className="text-white">Signing in...</span>
+            </div>
+          )}
+          {error && (
+            <div className="bg-red-900/30 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg text-sm mb-4">
+              {error}
+            </div>
+          )}
         </div>
 
-        {/* Sign In Component (single card) */}
-        <SignIn 
-          routing="path" 
-          path="/login"
-          signUpUrl="/signup"
-          appearance={{
-            elements: {
-              // Center the whole widget and limit width
-              rootBox: "w-full flex items-center justify-center",
-              // Apply glassmorphism directly to Clerk card so there's only ONE visible box
-              card: "w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl shadow-2xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8",
-              // Make inner box transparent to avoid the double-box effect
-              cardBox: "bg-transparent shadow-none border-none p-0",
-              headerTitle: "text-white text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3",
-              headerSubtitle: "text-gray-300 text-sm sm:text-base lg:text-lg mb-3 sm:mb-4",
-              socialButtonsBlockButton: "bg-white/20 border-white/30 text-white hover:bg-white/30 transition-all duration-200 text-sm sm:text-base py-2 sm:py-3",
-              socialButtonsBlockButtonText: "text-white font-medium text-sm sm:text-base",
-              dividerLine: "bg-white/30",
-              dividerText: "text-gray-300 text-xs sm:text-sm",
-              formFieldLabel: "text-white font-medium mb-1.5 text-sm sm:text-base",
-              formFieldInput: "bg-white/20 border-white/30 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500 rounded-lg text-sm sm:text-base py-2 sm:py-3 px-3",
-              formButtonPrimary: "bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base",
-              footerActionLink: "text-red-400 hover:text-red-300 font-medium text-sm sm:text-base",
-              identityPreviewText: "text-white text-sm sm:text-base",
-              identityPreviewEditButton: "text-red-400 hover:text-red-300 text-xs sm:text-sm",
-              formFieldSuccessText: "text-green-400 text-xs sm:text-sm",
-              formFieldErrorText: "text-red-400 text-xs sm:text-sm",
-              alertClerkError: "text-red-400 bg-red-900/20 border-red-500/30 rounded-lg p-2 sm:p-3 text-xs sm:text-sm",
-              formFieldHintText: "text-gray-400 text-xs sm:text-sm",
-              otpCodeFieldInput: "bg-white/20 border-white/30 text-white text-center text-base sm:text-lg py-2 sm:py-3",
-              formResendCodeLink: "text-red-400 hover:text-red-300 text-xs sm:text-sm",
-            },
-            layout: {
-              socialButtonsPlacement: "top",
-              showOptionalFields: false,
-            },
-          }}
-        />
+        {/* Google-only Sign In */}
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl shadow-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+          <h2 className="text-white text-lg sm:text-xl lg:text-2xl font-bold mb-4 text-center">
+            Continue with Google
+          </h2>
+          <p className="text-gray-300 text-sm sm:text-base text-center mb-6">
+            Use your Google account to access Evolution Gym. No passwords needed.
+          </p>
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isLoading || !isLoaded}
+            className={`w-full flex items-center justify-center space-x-3 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
+              isLoading || !isLoaded
+                ? 'bg-white/20 text-gray-300 cursor-not-allowed'
+                : 'bg-white text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <span className="bg-white rounded-full p-1">
+              <svg className="h-6 w-6" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.18 0 6.04 1.09 8.29 3.23l6.19-6.19C34.55 2.52 29.64.5 24 .5 14.82.5 6.73 5.98 2.73 13.72l7.32 5.69C11.83 13.05 17.39 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.5 24.5c0-1.64-.15-3.21-.44-4.74H24v9.11h12.7c-.55 2.98-2.22 5.5-4.73 7.18l7.25 5.62C43.95 37.28 46.5 31.39 46.5 24.5z"/>
+                <path fill="#FBBC05" d="M10.05 28.41a13.5 13.5 0 010-8.82l-7.32-5.69A23.94 23.94 0 000 24c0 3.9.93 7.58 2.73 10.76l7.32-5.69z"/>
+                <path fill="#34A853" d="M24 47.5c6.48 0 11.91-2.13 15.88-5.79l-7.25-5.62c-2.01 1.35-4.59 2.14-8.63 2.14-6.61 0-12.17-3.55-13.95-8.75l-7.32 5.69C6.73 42.02 14.82 47.5 24 47.5z"/>
+                <path fill="none" d="M0 0h48v48H0z"/>
+              </svg>
+            </span>
+            <span>{isLoading ? 'Redirecting…' : 'Sign in with Google'}</span>
+          </button>
+          <p className="text-gray-400 text-xs sm:text-sm text-center mt-4">
+            Need an account? <a href="/signup" className="text-red-400 hover:text-red-300">Sign up with Google</a>
+          </p>
+        </div>
       </div>
 
       {/* Decorative Elements */}
