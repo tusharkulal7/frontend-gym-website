@@ -306,9 +306,9 @@ export default function AllUsers() {
       if (contentType && contentType.includes("application/json")) {
         data = await res.json();
       } else {
-        const text = await res.text();
+        const rawText = await res.text();
         if (!res.ok) {
-          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+          throw new Error(`Server error: ${res.status} ${res.statusText}: ${rawText}`);
         }
         data = { message: `User ${action}d successfully` };
       }
@@ -387,9 +387,9 @@ export default function AllUsers() {
       if (contentType && contentType.includes("application/json")) {
         data = await res.json();
       } else {
-        const text = await res.text();
+        const rawText = await res.text();
         if (!res.ok) {
-          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+          throw new Error(`Server error: ${res.status} ${res.statusText}: ${rawText}`);
         }
         data = { message: "User deleted successfully" };
       }
