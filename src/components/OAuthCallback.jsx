@@ -8,7 +8,7 @@ export function OAuthCallback() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState(null);
-  const [status, setStatus] = useState('Completing sign in...');
+  const [status, setStatus] = useState('Completing authentication...');
 
   useEffect(() => {
     if (!signInLoaded || !authLoaded) {
@@ -25,52 +25,52 @@ export function OAuthCallback() {
 
     async function handleOAuthCallback() {
       try {
-        setStatus('Completing sign in...');
-        
-        // Complete the OAuth flow
+        setStatus('Completing authentication...');
+
+        // Complete the OAuth flow using signIn (works for both signin and signup)
         const result = await signIn.create({
           strategy: 'oauth_callback',
           redirectUrl: window.location.href
         });
 
         console.log('OAuth callback result:', result);
-        
+
         if (result.status === 'complete') {
           setStatus('Finalizing your session...');
-          
+
           // Set the active session
           await setActive({ session: result.createdSessionId });
-          
-          console.log('✅ OAuth sign in successful, redirecting to home');
-          navigate('/');
+
+          console.log('✅ OAuth authentication successful');
+          // Let Clerk handle the redirect to redirectUrlComplete
           return;
         }
-        
+
         // Handle other statuses
         if (result.status === 'needs_identifier') {
-          throw new Error('Additional information is required to complete sign in');
+          throw new Error('Additional information is required to complete authentication');
         }
-        
+
         if (result.status === 'needs_new_password') {
           navigate('/reset-password');
           return;
         }
-        
+
         console.warn('Unexpected status during OAuth:', result.status);
-        throw new Error('Unexpected status during sign in: ' + result.status);
-        
+        throw new Error('Unexpected status during authentication: ' + result.status);
+
       } catch (err) {
         console.error('❌ OAuth callback error:', err);
-        
+
         // More specific error handling
         if (err.errors?.[0]?.code === 'form_identifier_exists') {
           setError('An account with this email already exists. Please sign in directly.');
         } else if (err.status === 422) {
           setError('Invalid OAuth response. Please try again.');
         } else {
-          setError(err.message || 'Failed to complete sign in. Please try again.');
+          setError(err.message || 'Failed to complete authentication. Please try again.');
         }
-        
+
         setStatus('Error occurred');
       }
     }

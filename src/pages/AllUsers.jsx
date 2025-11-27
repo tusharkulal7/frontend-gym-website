@@ -410,11 +410,12 @@ export default function AllUsers() {
   };
 
   // -----------------------------
-  // Filter users by name or email
+  // Filter users by name, email, or role
   // -----------------------------
   const filteredUsers = users.filter((u) =>
     u.name?.toLowerCase().includes(search.trim().toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.trim().toLowerCase())
+    u.email?.toLowerCase().includes(search.trim().toLowerCase()) ||
+    u.role?.toLowerCase().includes(search.trim().toLowerCase())
   );
 
   // -----------------------------
@@ -505,7 +506,7 @@ export default function AllUsers() {
 
       <input
         type="text"
-        placeholder="Search by name or email..."
+        placeholder="Search by name, email, or role..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="border p-2 mb-4 w-full max-w-md text-black rounded-md"

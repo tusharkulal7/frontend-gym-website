@@ -38,6 +38,7 @@ const CustomSignUp = () => {
         strategy: 'oauth_google',
         redirectUrl,
         redirectUrlComplete,
+        state: 'signup',
       });
     } catch (err) {
       handleError(err);

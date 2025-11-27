@@ -45,6 +45,7 @@ const CustomSignIn = () => {
         strategy: 'oauth_google',
         redirectUrl,
         redirectUrlComplete,
+        state: 'signin',
       });
     } catch (err) {
       handleError(err);
