@@ -114,10 +114,10 @@ export default function ProfileDrawer({ open, onClose }) {
               You need to sign in to view your profile
             </p>
             <button
-              onClick={() => navigate("/signup")}
-              className="px-4 py-2 bg-green-500 rounded text-white font-semibold"
+              onClick={() => navigate("/login")}
+              className="px-4 py-2 bg-red-600 rounded text-white font-semibold hover:bg-red-700 transition-colors"
             >
-              Sign Up
+              Sign In with Google
             </button>
           </div>
         ) : (

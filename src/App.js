@@ -12,9 +12,7 @@ import Footer from "./components/Footer";
 import ProfileDrawer from "./components/ProfileDrawer";
 import ScrollToTop from "./components/ScrollToTop";
 import CustomSignIn from "./components/CustomSignIn";
-import CustomSignUp from "./components/CustomSignUp";
 import OAuthCallback from "./components/OAuthCallback";
-import VerificationPage from "./components/VerificationPage";
 import AdminSetup from "./components/AdminSetup";
 
 // Lazy load pages for better performance
@@ -68,7 +66,7 @@ function App() {
           <Route path="/test" element={<ConnectionTest />} />
           <Route path="/admin-setup" element={<AdminSetup />} />
 
-          {/* Clerk Auth Routes */}
+          {/* Clerk Auth Routes - Unified Login (handles both sign-in and sign-up) */}
           <Route
             path="/login"
             element={
@@ -77,31 +75,20 @@ function App() {
               </SignedOut>
             }
           />
+          {/* Redirect signup to login - unified authentication */}
           <Route
             path="/signup"
-            element={
-              <SignedOut>
-                <CustomSignUp />
-              </SignedOut>
-            }
+            element={<Navigate to="/login" replace />}
           />
           <Route
             path="/sso-callback"
-            element={
-              <SignedOut>
-                <OAuthCallback />
-              </SignedOut>
-            }
+            element={<OAuthCallback />}
           />
           
-          {/* Verification Page */}
+          {/* Redirect verification to home - no longer needed with unified flow */}
           <Route
             path="/verification"
-            element={
-              <SignedOut>
-                <VerificationPage />
-              </SignedOut>
-            }
+            element={<Navigate to="/" replace />}
           />
 
           {/* Protected Admin Route */}

@@ -9,6 +9,10 @@ import { ClerkProvider } from "@clerk/clerk-react";
 
 const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
 
+if (!clerkPubKey) {
+  console.error('❌ REACT_APP_CLERK_PUBLISHABLE_KEY is not set');
+}
+
 const clerkAppearance = {
   elements: {
     formButtonPrimary: 'bg-red-600 hover:bg-red-700 text-white text-sm py-2 px-4 rounded-md transition-colors',
@@ -33,7 +37,7 @@ const clerkAppearance = {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <ClerkProvider 
+    <ClerkProvider
       publishableKey={clerkPubKey}
       appearance={clerkAppearance}
       navigate={(to) => window.location.href = to}

@@ -1,23 +1,20 @@
 import React, { useState } from 'react';
-import { useSignIn } from '@clerk/clerk-react';
+import { useSignIn, useSignUp } from '@clerk/clerk-react';
 import { STATIC_IMAGES } from '../constants/staticImages';
 
 const CustomSignIn = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, isLoaded } = useSignIn();
+  const { signIn, isLoaded: signInLoaded } = useSignIn();
+  const { isLoaded: signUpLoaded } = useSignUp();
+
+  const isLoaded = signInLoaded && signUpLoaded;
 
   const handleError = (error) => {
     console.error('Authentication error:', error);
     let errorMessage = 'Failed to sign in. Please try again.';
     
-    if (error.errors?.[0]?.code === 'form_identifier_not_found') {
-      errorMessage = 'No account found with this email. Please sign up first.';
-    } else if (error.errors?.[0]?.code === 'form_password_incorrect') {
-      errorMessage = 'Incorrect password. Please try again or reset your password.';
-    } else if (error.errors?.[0]?.code === 'form_code_incorrect') {
-      errorMessage = 'Invalid verification code. Please try again or request a new one.';
-    } else if (error.errors?.[0]?.message) {
+    if (error.errors?.[0]?.message) {
       errorMessage = error.errors[0].message;
     } else if (error.message) {
       errorMessage = error.message;
@@ -28,8 +25,8 @@ const CustomSignIn = () => {
     setIsLoading(false);
   };
 
-  const handleGoogleSignIn = async () => {
-    if (!isLoaded || !signIn) {
+  const handleGoogleAuth = async () => {
+    if (!isLoaded) {
       setError('Authentication service is not ready yet. Please try again in a moment.');
       return;
     }
@@ -38,14 +35,11 @@ const CustomSignIn = () => {
     setError('');
 
     try {
-      const redirectUrl = `${window.location.origin}/sso-callback`;
-      const redirectUrlComplete = `${window.location.origin}/`;
-
+      // Use Clerk's built-in OAuth redirect - it handles everything automatically
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
-        redirectUrl,
-        redirectUrlComplete,
-        state: 'signin',
+        redirectUrl: `${window.location.origin}/sso-callback`,
+        redirectUrlComplete: `${window.location.origin}/`,
       });
     } catch (err) {
       handleError(err);
@@ -68,12 +62,12 @@ const CustomSignIn = () => {
             EVOLUTION GYM & FITNESS
           </h1>
           <p className="text-gray-300 text-sm sm:text-base lg:text-lg mb-2">
-            Sign in to access your fitness journey
+            Access your fitness journey with one click
           </p>
           {isLoading && (
             <div className="flex items-center justify-center mb-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500 mr-2"></div>
-              <span className="text-white">Signing in...</span>
+              <span className="text-white">Connecting to Google...</span>
             </div>
           )}
           {error && (
@@ -83,17 +77,17 @@ const CustomSignIn = () => {
           )}
         </div>
 
-        {/* Google-only Sign In */}
+        {/* Google-only Authentication */}
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl shadow-2xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
           <h2 className="text-white text-lg sm:text-xl lg:text-2xl font-bold mb-4 text-center">
             Continue with Google
           </h2>
           <p className="text-gray-300 text-sm sm:text-base text-center mb-6">
-            Use your Google account to access Evolution Gym. No passwords needed.
+            Sign in or create your account instantly with Google. No passwords needed - fast and secure.
           </p>
           <button
             type="button"
-            onClick={handleGoogleSignIn}
+            onClick={handleGoogleAuth}
             disabled={isLoading || !isLoaded}
             className={`w-full flex items-center justify-center space-x-3 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl ${
               isLoading || !isLoaded
@@ -110,10 +104,10 @@ const CustomSignIn = () => {
                 <path fill="none" d="M0 0h48v48H0z"/>
               </svg>
             </span>
-            <span>{isLoading ? 'Redirecting…' : 'Sign in with Google'}</span>
+            <span>{isLoading ? 'Redirecting…' : 'Continue with Google'}</span>
           </button>
-          <p className="text-gray-400 text-xs sm:text-sm text-center mt-4">
-            Need an account? <a href="/signup" className="text-red-400 hover:text-red-300">Sign up with Google</a>
+          <p className="text-gray-400 text-xs sm:text-sm text-center mt-6">
+            New users are automatically registered when signing in with Google
           </p>
         </div>
       </div>
