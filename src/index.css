@@ -167,3 +167,46 @@ code {
     padding: 1.25rem 1.5rem !important;
   }
 }
+
+/* ------------------- CUSTOM TOAST NOTIFICATION STYLES ------------------- */
+.agency-toast {
+  font-family: "Agency FB", sans-serif !important;
+}
+
+.agency-toast .Toastify__toast {
+  font-family: "Agency FB", sans-serif !important;
+}
+
+.agency-toast .Toastify__toast-body {
+  font-family: "Agency FB", sans-serif !important;
+}
+
+/* ------------------- KEEN SLIDER OVERRIDES ------------------- */
+.keen-slider {
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+.keen-slider__slide {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+}
+
+.keen-slider__slide img {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+}
+
+/* Hide any overflow from the slider track */
+.keen-slider__track {
+  overflow: hidden !important;
+}

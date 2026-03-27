@@ -5,6 +5,8 @@ import { useUser, useAuth } from "@clerk/clerk-react";
 import { galleryAPI } from "../utils/api";
 import { STATIC_IMAGES } from "../constants/staticImages";
 import logger from "../utils/logger";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function GallerySection() {
   const { user, isLoaded } = useUser();
@@ -20,12 +22,19 @@ export default function GallerySection() {
   const [modifyMode, setModifyMode] = useState(false);
   const [swapMode, setSwapMode] = useState(false);
   const [swapFirstItem, setSwapFirstItem] = useState(null);
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [dragOverItem, setDragOverItem] = useState(null);
+  const [touchItem, setTouchItem] = useState(null);
+  const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
+  const [draggedElement, setDraggedElement] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editFile, setEditFile] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const menuRef = useRef();
 
   const normalizedRole = user?.publicMetadata?.role?.toLowerCase().replace(/\s+/g, "") || "none";
@@ -67,6 +76,10 @@ export default function GallerySection() {
         setSwapFirstItem(null);
         setSelectedItems([]);
         setEditingItem(null);
+        setDraggedItem(null);
+        setDragOverItem(null);
+        setTouchItem(null);
+        setDraggedElement(null);
       }
     };
     window.addEventListener("keydown", handleEsc);
@@ -103,27 +116,28 @@ export default function GallerySection() {
     
     // Check if Clerk is fully loaded
     if (!isLoaded || !authLoaded) {
-      alert("Please wait for the page to fully load and try again.");
+      toast.error("Please wait for the page to fully load and try again.");
       return;
     }
     
     // Check if user is authenticated
     if (!user) {
-      alert("Please sign in to upload files");
+      toast.error("Please sign in to upload files");
       return;
     }
 
     // Check if getToken function is available
     if (!getToken || typeof getToken !== 'function') {
       logger.error("getToken is not available");
-      alert("Authentication error. Please refresh the page and try again.");
+      toast.error("Authentication error. Please refresh the page and try again.");
       return;
     }
 
+    setIsUploading(true);
     try {
       const token = await getToken();
       if (!token) {
-        alert("Unable to get authentication token. Please sign in again.");
+        toast.error("Unable to get authentication token. Please sign in again.");
         return;
       }
 
@@ -137,11 +151,13 @@ export default function GallerySection() {
       setMenuOpen(false);
       
       logger.success("Upload successful:", newItems.length, "files uploaded");
-      alert(`✅ Successfully uploaded ${newItems.length} file(s)!`);
+      toast.success(`Successfully uploaded ${newItems.length} file(s)!`);
     } catch (err) {
       logger.error("Upload error:", err);
       logger.error("Error details:", err.response?.data);
-      alert("Upload failed: " + (err.response?.data?.message || err.message || "Network error"));
+      toast.error("Upload failed: " + (err.response?.data?.message || err.message || "Network error"));
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -161,17 +177,18 @@ export default function GallerySection() {
   };
 
   const handleDeleteSelected = async () => {
-    if (!selectedItems.length) return alert("Select items to delete");
+    if (!selectedItems.length) return toast.error("Select items to delete");
     
     if (!getToken || typeof getToken !== 'function') {
-      alert("Authentication error. Please refresh the page and try again.");
+      toast.error("Authentication error. Please refresh the page and try again.");
       return;
     }
 
+    setIsDeleting(true);
     try {
       const token = await getToken();
       if (!token) {
-        alert("Unable to get authentication token. Please sign in again.");
+        toast.error("Unable to get authentication token. Please sign in again.");
         return;
       }
 
@@ -188,9 +205,12 @@ export default function GallerySection() {
       setDeleteMode(false);
       setSelectedItems([]);
       setMenuOpen(false);
+      toast.success(`Successfully deleted ${selectedItems.length} item(s)`);
     } catch (err) {
       logger.error(err);
-      alert("Delete failed: " + (err.response?.data?.message || err.message));
+      toast.error("Delete failed: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -210,7 +230,7 @@ export default function GallerySection() {
     if (!editingItem) return;
     
     if (!getToken || typeof getToken !== 'function') {
-      alert("Authentication error. Please refresh the page and try again.");
+      toast.error("Authentication error. Please refresh the page and try again.");
       return;
     }
 
@@ -218,7 +238,7 @@ export default function GallerySection() {
     try {
       const token = await getToken();
       if (!token) {
-        alert("Unable to get authentication token. Please sign in again.");
+        toast.error("Unable to get authentication token. Please sign in again.");
         return;
       }
 
@@ -237,27 +257,152 @@ export default function GallerySection() {
       setSelectedItems([]);
     } catch (err) {
       logger.error("Modify failed:", err);
-      alert("Modify failed: " + (err.response?.data?.message || err.message));
+      toast.error("Modify failed: " + (err.response?.data?.message || err.message));
     } finally {
       setSavingEdit(false);
     }
   };
 
-  /** Swap logic */
-  const handleSwapItemClick = async (item) => {
-    if (!swapFirstItem) {
-      setSwapFirstItem(item);
+  /** Drag and drop handlers */
+  const handleDragStart = (e, item) => {
+    setDraggedItem(item);
+    setDraggedElement(e.target);
+    e.dataTransfer.effectAllowed = 'move';
+    
+    // Add smooth drag effects
+    setTimeout(() => {
+      if (e.target) {
+        e.target.style.opacity = '0.5';
+        e.target.style.transform = 'scale(0.95)';
+        e.target.style.transition = 'all 0.2s ease';
+      }
+    }, 0);
+  };
+
+  const handleDragOver = (e, item) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverItem(item);
+    
+    // Add hover effect for drop target
+    const element = e.currentTarget;
+    if (element && draggedItem?._id !== item._id) {
+      element.style.transform = 'scale(1.05)';
+      element.style.transition = 'transform 0.2s ease';
+      element.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)';
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    setDragOverItem(null);
+    
+    // Remove hover effect with robust null check
+    if (e && e.currentTarget) {
+      e.currentTarget.style.transform = '';
+      e.currentTarget.style.boxShadow = '';
+    }
+  };
+
+  const handleDrop = async (e, dropItem) => {
+    e.preventDefault();
+    setDragOverItem(null);
+    
+    // Remove hover effect
+    if (e && e.currentTarget) {
+      e.currentTarget.style.transform = '';
+      e.currentTarget.style.boxShadow = '';
+    }
+    
+    if (!draggedItem || draggedItem._id === dropItem._id) {
+      // Reset dragged element styles
+      if (draggedElement) {
+        draggedElement.style.opacity = '';
+        draggedElement.style.transform = '';
+      }
+      setDraggedItem(null);
+      setDraggedElement(null);
       return;
     }
+
     const currentItems = activeTab === "photos" ? [...images] : [...videos];
-    const index1 = currentItems.findIndex((i) => i._id === swapFirstItem._id);
-    const index2 = currentItems.findIndex((i) => i._id === item._id);
-    if (index1 === -1 || index2 === -1 || index1 === index2) return;
-    [currentItems[index1], currentItems[index2]] = [currentItems[index2], currentItems[index1]];
-    activeTab === "photos" ? setImages(currentItems) : setVideos(currentItems);
-    setSwapMode(false);
-    setSwapFirstItem(null);
-    setSelectedItems([]);
+    const draggedIndex = currentItems.findIndex((i) => i._id === draggedItem._id);
+    const dropIndex = currentItems.findIndex((i) => i._id === dropItem._id);
+    
+    if (draggedIndex === -1 || dropIndex === -1) return;
+    
+    // Add smooth animation
+    const draggedEl = document.querySelector(`[data-gallery-item="${draggedItem._id}"]`);
+    const dropTargetEl = document.querySelector(`[data-gallery-item="${dropItem._id}"]`);
+    
+    if (draggedEl && dropTargetEl) {
+      // Get positions for smooth animation
+      const draggedRect = draggedEl.getBoundingClientRect();
+      const dropRect = dropTargetEl.getBoundingClientRect();
+      
+      // Create temporary element for smooth animation
+      const ghostElement = draggedEl.cloneNode(true);
+      ghostElement.style.position = 'fixed';
+      ghostElement.style.left = draggedRect.left + 'px';
+      ghostElement.style.top = draggedRect.top + 'px';
+      ghostElement.style.width = draggedRect.width + 'px';
+      ghostElement.style.height = draggedRect.height + 'px';
+      ghostElement.style.zIndex = '1000';
+      ghostElement.style.pointerEvents = 'none';
+      ghostElement.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      ghostElement.style.opacity = '0.8';
+      document.body.appendChild(ghostElement);
+      
+      // Animate to drop position
+      setTimeout(() => {
+        ghostElement.style.left = dropRect.left + 'px';
+        ghostElement.style.top = dropRect.top + 'px';
+      }, 10);
+      
+      // Remove ghost element and update state after animation
+      setTimeout(() => {
+        document.body.removeChild(ghostElement);
+        
+        // Remove dragged item and insert it at drop position
+        const [removed] = currentItems.splice(draggedIndex, 1);
+        currentItems.splice(dropIndex, 0, removed);
+        
+        // Update state
+        activeTab === "photos" ? setImages(currentItems) : setVideos(currentItems);
+        
+        // Update backend
+        updateBackend(currentItems);
+        
+        // Reset dragged element styles
+        if (draggedElement) {
+          draggedElement.style.opacity = '';
+          draggedElement.style.transform = '';
+        }
+      }, 300);
+    }
+    
+    setDraggedItem(null);
+    setDraggedElement(null);
+  };
+
+  const handleDragEnd = () => {
+    // Reset all styles
+    if (draggedElement) {
+      draggedElement.style.opacity = '';
+      draggedElement.style.transform = '';
+    }
+    
+    // Remove any remaining hover effects
+    document.querySelectorAll('[data-gallery-item]').forEach(element => {
+      element.style.transform = '';
+      element.style.boxShadow = '';
+    });
+    
+    setDraggedItem(null);
+    setDragOverItem(null);
+    setDraggedElement(null);
+  };
+
+  const updateBackend = async (currentItems) => {
     try {
       if (getToken && typeof getToken === 'function') {
         const token = await getToken();
@@ -266,11 +411,142 @@ export default function GallerySection() {
             currentItems.map((i, idx) => ({ _id: i._id, position: idx })),
             token
           );
+          toast.success("Position updated successfully");
         }
       }
     } catch (err) {
-      logger.error("Swap update failed:", err);
+      logger.error("Reorder update failed:", err);
+      toast.error("Failed to update positions");
     }
+  };
+
+  /** Touch event handlers for mobile drag and drop */
+  const handleTouchStart = (e, item) => {
+    if (!swapMode) return;
+    
+    const touch = e.touches[0];
+    setTouchItem(item);
+    setTouchPosition({ x: touch.clientX, y: touch.clientY });
+    
+    // Add visual feedback for mobile
+    if (e.target) {
+      e.target.style.opacity = '0.5';
+      e.target.style.transform = 'scale(0.95)';
+      e.target.style.transition = 'all 0.2s ease';
+      e.target.style.zIndex = '1000';
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!swapMode || !touchItem) return;
+    
+    const touch = e.touches[0];
+    setTouchPosition({ x: touch.clientX, y: touch.clientY });
+    
+    // Find element under touch
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const galleryItem = elementBelow?.closest('[data-gallery-item]');
+    
+    // Remove previous hover effects
+    document.querySelectorAll('[data-gallery-item]').forEach(el => {
+      el.style.transform = '';
+      el.style.boxShadow = '';
+    });
+    
+    if (galleryItem) {
+      const itemId = galleryItem.getAttribute('data-gallery-item');
+      if (itemId !== touchItem._id) {
+        setDragOverItem({ _id: itemId });
+        // Add hover effect for drop target
+        galleryItem.style.transform = 'scale(1.05)';
+        galleryItem.style.transition = 'transform 0.2s ease';
+        galleryItem.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)';
+      }
+    }
+  };
+
+  const handleTouchEnd = async (e) => {
+    if (!swapMode || !touchItem) return;
+    
+    // Remove visual feedback
+    if (e.target) {
+      e.target.style.opacity = '';
+      e.target.style.transform = '';
+      e.target.style.zIndex = '';
+    }
+    
+    // Remove all hover effects
+    document.querySelectorAll('[data-gallery-item]').forEach(el => {
+      el.style.transform = '';
+      el.style.boxShadow = '';
+    });
+    
+    // Find drop target
+    const touch = e.changedTouches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const galleryItem = elementBelow?.closest('[data-gallery-item]');
+    
+    if (galleryItem) {
+      const itemId = galleryItem.getAttribute('data-gallery-item');
+      if (itemId && itemId !== touchItem._id) {
+        const dropItem = { _id: itemId };
+        
+        // Perform the swap with animation
+        const currentItems = activeTab === "photos" ? [...images] : [...videos];
+        const draggedIndex = currentItems.findIndex((i) => i._id === touchItem._id);
+        const dropIndex = currentItems.findIndex((i) => i._id === dropItem._id);
+        
+        if (draggedIndex !== -1 && dropIndex !== -1) {
+          // Add smooth animation for mobile
+          const draggedEl = document.querySelector(`[data-gallery-item="${touchItem._id}"]`);
+          const dropTargetEl = document.querySelector(`[data-gallery-item="${dropItem._id}"]`);
+          
+          if (draggedEl && dropTargetEl) {
+            // Get positions for smooth animation
+            const draggedRect = draggedEl.getBoundingClientRect();
+            const dropRect = dropTargetEl.getBoundingClientRect();
+            
+            // Create temporary element for smooth animation
+            const ghostElement = draggedEl.cloneNode(true);
+            ghostElement.style.position = 'fixed';
+            ghostElement.style.left = draggedRect.left + 'px';
+            ghostElement.style.top = draggedRect.top + 'px';
+            ghostElement.style.width = draggedRect.width + 'px';
+            ghostElement.style.height = draggedRect.height + 'px';
+            ghostElement.style.zIndex = '1000';
+            ghostElement.style.pointerEvents = 'none';
+            ghostElement.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            ghostElement.style.opacity = '0.8';
+            document.body.appendChild(ghostElement);
+            
+            // Animate to drop position
+            setTimeout(() => {
+              ghostElement.style.left = dropRect.left + 'px';
+              ghostElement.style.top = dropRect.top + 'px';
+            }, 10);
+            
+            // Remove ghost element and update state after animation
+            setTimeout(() => {
+              document.body.removeChild(ghostElement);
+              
+              // Remove dragged item and insert it at drop position
+              const [removed] = currentItems.splice(draggedIndex, 1);
+              currentItems.splice(dropIndex, 0, removed);
+              
+              // Update state
+              activeTab === "photos" ? setImages(currentItems) : setVideos(currentItems);
+              
+              // Update backend
+              updateBackend(currentItems);
+            }, 300);
+          }
+        }
+      }
+    }
+    
+    // Reset touch state
+    setTouchItem(null);
+    setDragOverItem(null);
   };
 
   /** Menu actions */
@@ -287,14 +563,17 @@ export default function GallerySection() {
       setModifyMode(false);
       setDeleteMode(false);
       setSelectedItems([]);
-      alert("Swap mode enabled. Click first item to swap.");
+      setDraggedItem(null);
+      setDragOverItem(null);
+      setTouchItem(null);
+      setDraggedElement(null);
+      toast.info("Drag and drop mode enabled. Drag items to reorder.");
     }
     setMenuOpen(false);
   };
 
   /** Handle gallery item click */
   const handleItemClick = (item) => {
-    if (swapMode) return handleSwapItemClick(item);
     if (deleteMode || modifyMode) {
       toggleSelectItem(item._id);
       if (modifyMode && selectedItems.length === 0) openEditModal(item);
@@ -308,30 +587,47 @@ export default function GallerySection() {
     <>
       <section className="py-8 sm:py-12 lg:py-16 pt-20 sm:pt-24 lg:pt-32 px-3 sm:px-4 lg:px-6 text-white relative min-h-screen">
         {(normalizedRole === "super-admin" || normalizedRole === "admin") && (
-          <div className="fixed top-[80px] xs:top-[100px] sm:top-[120px] md:top-[140px] lg:top-[160px] right-3 sm:right-4 z-20" ref={menuRef}>
-            <button onClick={() => setMenuOpen(prev => !prev)} className="p-2 rounded-full hover:bg-gray-800 bg-gray-900">
-              <MoreVertical size={28} />
-            </button>
+          <>
+            {/* 3-dot menu - fixed position */}
+            <div className="fixed top-[80px] xs:top-[100px] sm:top-[120px] md:top-[140px] lg:top-[160px] right-3 sm:right-4 z-20" ref={menuRef}>
+              <button onClick={() => setMenuOpen(prev => !prev)} className="p-2 rounded-full hover:bg-gray-800 bg-gray-900">
+                <MoreVertical size={28} />
+              </button>
 
-            {menuOpen && (
-              <div className="absolute right-0 mt-2 w-44 md:w-56 bg-gray-900 border border-gray-700 rounded-md shadow-lg">
-                {["Add", "Delete", "Modify", "Swap"].map(item => (
-                  <button
-                    key={item}
-                    onClick={() => handleMenuAction(item.toLowerCase())}
-                    className="block w-full text-left px-4 py-3 md:py-4 text-base md:text-lg hover:bg-gray-800"
-                  >{item}</button>
-                ))}
-              </div>
-            )}
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-44 md:w-56 bg-gray-900 border border-gray-700 rounded-md shadow-lg">
+                  {["Add", "Delete", "Modify", "Swap"].map(item => (
+                    <button
+                      key={item}
+                      onClick={() => handleMenuAction(item.toLowerCase())}
+                      className="block w-full text-left px-4 py-3 md:py-4 text-base md:text-lg hover:bg-gray-800"
+                    >{item}</button>
+                  ))}
+                </div>
+              )}
+            </div>
 
+            {/* Upload button - separate fixed position below the menu */}
             <input id="fileInput" type="file" multiple onChange={handleFileChange} style={{ display: "none" }} />
             {files.length > 0 && (
-              <button onClick={handleUpload} className="mt-2 w-full bg-red-600 text-white py-2 rounded-md">
-                Upload {files.length} file(s)
-              </button>
+              <div className="fixed top-[128px] xs:top-[148px] sm:top-[168px] md:top-[188px] lg:top-[208px] right-3 sm:right-4 z-20">
+                <button 
+                  onClick={handleUpload} 
+                  className="w-full bg-red-600 text-white py-2 rounded-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading {files.length} file(s)...
+                    </>
+                  ) : (
+                    `Upload ${files.length} file(s)`
+                  )}
+                </button>
+              </div>
             )}
-          </div>
+          </>
         )}
 
         <h1 className="font-agency underline text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-center">
@@ -368,11 +664,32 @@ export default function GallerySection() {
             <div className="grid grid-cols-3 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
               {modalItems.map(item => {
                 const isSwapSelected = swapFirstItem?._id === item._id;
+                const isDragged = draggedItem?._id === item._id;
+                const isDragOver = dragOverItem?._id === item._id;
+                
                 return (
                   <div
                     key={item._id}
-                    className={`relative cursor-pointer rounded-lg overflow-hidden ${isSwapSelected ? "neon-red-border" : ""}`}
-                    onClick={() => handleItemClick(item)}
+                    data-gallery-item={item._id}
+                    className={`relative cursor-pointer rounded-lg overflow-hidden transition-all duration-300 ${
+                      isSwapSelected ? "neon-red-border" : ""
+                    } ${
+                      isDragged ? "opacity-50 scale-95" : ""
+                    } ${
+                      isDragOver ? "ring-4 ring-blue-500 ring-opacity-50" : ""
+                    } ${
+                      swapMode ? "hover:scale-105" : "hover:-translate-y-1"
+                    }`}
+                    onClick={() => !swapMode && handleItemClick(item)}
+                    draggable={swapMode}
+                    onDragStart={(e) => swapMode && handleDragStart(e, item)}
+                    onDragOver={(e) => swapMode && handleDragOver(e, item)}
+                    onDragLeave={() => swapMode && handleDragLeave()}
+                    onDrop={(e) => swapMode && handleDrop(e, item)}
+                    onDragEnd={() => swapMode && handleDragEnd()}
+                    onTouchStart={(e) => handleTouchStart(e, item)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
                   >
                     {(deleteMode || modifyMode) && (
                       <input
@@ -382,11 +699,16 @@ export default function GallerySection() {
                         className="absolute top-2 left-2 w-6 h-6 z-10 accent-red-600"
                       />
                     )}
+                    {swapMode && (
+                      <div className="absolute top-2 right-2 z-10 bg-blue-600 rounded-full p-1">
+                        <MoreVertical size={16} className="text-white" />
+                      </div>
+                    )}
                     {activeTab === "photos" ? (
                       <img 
                         src={item.url} 
                         alt={item.name || "Gallery Image"} 
-                        className="w-full object-cover rounded-lg hover:-translate-y-1 transition-all duration-300 h-32 xs:h-36 sm:h-40 md:h-48 lg:h-56 xl:h-64"
+                        className="w-full object-cover rounded-lg h-32 xs:h-36 sm:h-40 md:h-48 lg:h-56 xl:h-64"
                         loading="lazy"
                         onError={(e) => {
                           e.target.onerror = null;
@@ -411,11 +733,43 @@ export default function GallerySection() {
           )}
         </div>
 
+        {/* Swap Mode Exit Button */}
+        {swapMode && (
+          <div className="fixed left-1/2 transform -translate-x-1/2 z-50 bottom-24 md:bottom-20">
+            <button 
+              onClick={() => {
+                setSwapMode(false);
+                setSwapFirstItem(null);
+                setSelectedItems([]);
+                setDraggedItem(null);
+                setDragOverItem(null);
+                setTouchItem(null);
+                setDraggedElement(null);
+                toast.info("Drag and drop mode disabled");
+              }}
+              className="bg-blue-600 text-white px-8 py-4 rounded-lg text-xl font-bold hover:bg-blue-500 shadow-lg flex items-center gap-3"
+            >
+              Exit Swap Mode
+            </button>
+          </div>
+        )}
+
         {/* Delete & Modify buttons */}
         {deleteMode && selectedItems.length > 0 && (
           <div className="fixed left-1/2 transform -translate-x-1/2 z-50 bottom-24 md:bottom-20">
-            <button onClick={handleDeleteSelected} className="bg-red-600 text-white px-10 py-5 rounded-lg text-2xl font-bold hover:bg-red-500 shadow-lg">
-              Delete Selected ({selectedItems.length})
+            <button 
+              onClick={handleDeleteSelected} 
+              className="bg-red-600 text-white px-10 py-5 rounded-lg text-2xl font-bold hover:bg-red-500 shadow-lg flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                `Delete Selected (${selectedItems.length})`
+              )}
             </button>
           </div>
         )}
@@ -479,6 +833,6 @@ export default function GallerySection() {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+      </>
   );
 }

@@ -12,8 +12,19 @@ export default function Home() {
     drag: true,
     slides: {
       perView: 1,
+      spacing: 0,
+    },
+    detailsChanged: (s) => {
+      s.slides.forEach((slide, idx) => {
+        slide.style.opacity = s.track.details.abs === idx ? "1" : "0";
+      });
     },
     created: (slider) => {
+      // Initial hide all slides except first
+      slider.slides.forEach((slide, idx) => {
+        slide.style.opacity = idx === 0 ? "1" : "0";
+      });
+      
       setInterval(() => {
         slider.next();
       }, 3000);
@@ -49,7 +60,7 @@ Experience the difference—train hard, recover smart, and grow stronger every d
           <div className="w-full lg:w-1/2">
             <div
               ref={sliderRef}
-              className="keen-slider aspect-video rounded-xl overflow-hidden border-4 border-red-600 shadow-[0_0_20px_5px_rgba(255,0,0,0.7)]"
+              className="keen-slider aspect-video rounded-xl overflow-hidden border-2 border-red-600 shadow-[0_0_20px_5px_rgba(255,0,0,0.7)]"
             >
               {CAROUSEL_IMAGES.map((imageUrl, index) => (
                 <div key={index} className="keen-slider__slide">

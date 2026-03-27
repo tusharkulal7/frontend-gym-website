@@ -498,9 +498,9 @@ export default function AllUsers() {
   }
 
   return (
-    <div className="pt-24 px-6 relative">
+    <div className="pt-24 px-3 sm:px-4 lg:px-6 relative">
       <ConfirmationDialog />
-      <h1 className="text-3xl font-bold mb-6 text-white">
+      <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-white">
         All Registered Users
       </h1>
 
@@ -509,14 +509,14 @@ export default function AllUsers() {
         placeholder="Search by name, email, or role..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="border p-2 mb-4 w-full max-w-md text-black rounded-md"
+        className="border p-2 mb-4 w-full text-black rounded-md text-sm sm:text-base"
       />
 
       {message && (
         <div style={{
-          padding: '0.75rem',
-          marginBottom: '1rem',
-          borderRadius: '0.375rem',
+          padding: '0.5rem',
+          marginBottom: '0.75rem',
+          borderRadius: '0.25rem',
           backgroundColor: message.includes('error') || message.includes('fail') ? '#fef2f2' : '#f0fdf4',
           color: message.includes('error') || message.includes('fail') ? '#dc2626' : '#15803d',
           border: `1px solid ${message.includes('error') || message.includes('fail') ? '#fecaca' : '#bbf7d0'}`
@@ -528,14 +528,14 @@ export default function AllUsers() {
         <p style={{ color: 'white' }}>Loading users...</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-300">
+          <table className="w-full border border-gray-300 text-xs sm:text-sm">
             <thead className="bg-red-600 text-white">
               <tr>
-                <th className="px-4 py-2 border">Sl No</th>
-                <th className="px-4 py-2 border">Name</th>
-                <th className="px-4 py-2 border">Email</th>
-                <th className="px-4 py-2 border">Role</th>
-                <th className="px-4 py-2 border">Actions</th>
+                <th className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400">Sl No</th>
+                <th className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400">Name</th>
+                <th className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400">Email</th>
+                <th className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400">Role</th>
+                <th className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -544,17 +544,17 @@ export default function AllUsers() {
                   key={u.id}
                   className="hover:bg-gray-700 transition-colors duration-200"
                 >
-                  <td className="px-4 py-2 border text-white">{index + 1}</td>
-                  <td className="px-4 py-2 border text-white">{u.name}</td>
-                  <td className="px-4 py-2 border text-white">{u.email}</td>
-                  <td className="px-4 py-2 border text-white capitalize">
+                  <td className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400 text-white text-center">{index + 1}</td>
+                  <td className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400 text-white text-center">{u.name}</td>
+                  <td className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400 text-white text-xs sm:text-sm break-all text-center">{u.email}</td>
+                  <td className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400 text-white capitalize text-center">
                     {u.role}
                   </td>
-                  <td className="px-4 py-2 border text-center space-x-2">
+                  <td className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-400 text-center space-x-1">
                     {user.publicMetadata?.role === "super-admin" && u.role === "user" && (
                       <button
                         onClick={() => handlePromote(u.id, u.email)}
-                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md"
+                        className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs sm:px-3 sm:py-1 sm:text-sm"
                       >
                         Promote
                       </button>
@@ -562,7 +562,7 @@ export default function AllUsers() {
                     {user.publicMetadata?.role === "super-admin" && u.role === "admin" && (
                       <button
                         onClick={() => handleDemote(u.id, u.email)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-md"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs sm:px-3 sm:py-1 sm:text-sm"
                       >
                         Demote
                       </button>
@@ -570,7 +570,7 @@ export default function AllUsers() {
                     {user.publicMetadata?.role === "super-admin" && u.role !== "super-admin" && (
                       <button
                         onClick={() => showDeleteConfirmation(u.id, u.email)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md"
+                        className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs sm:px-3 sm:py-1 sm:text-sm"
                       >
                         Delete
                       </button>

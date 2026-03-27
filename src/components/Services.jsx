@@ -23,30 +23,32 @@ export default function Services() {
   const [selected, setSelected] = useState("weightTraining");
 
   return (
-    <section className="px-6 pt-32 py-12 md:px-10 text-white">
+    <section className="px-6 pt-32 py-12 md:px-10 text-white relative">
       <div className="max-w-5xl mx-auto">
         <h2 className="font-agency underline text-4xl sm:text-5xl md:text-6xl font-bold mb-10 text-center md:text-left">
           What Services We Provide ? :
         </h2>
 
         {/* Button Group */}
-        <div className="flex flex-wrap gap-4 justify-center md:justify-start mb-10">
-          {Object.keys(services).map((key) => (
-            <button
-              key={key}
-              onClick={() => setSelected(key)}
-              className={`px-5 py-3 rounded-lg font-agency text-lg sm:text-xl md:text-2xl transition-colors ${
-                selected === key
-                  ? "bg-red-600 text-white"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-              }`}
-            >
-              {services[key].title}
-            </button>
+        <div className="flex justify-between items-center mb-10 relative">
+          {Object.keys(services).map((key, index) => (
+            <div key={key} className="relative flex-1 text-center">
+              {/* Service Button */}
+              <button
+                onClick={() => setSelected(key)}
+                className={`px-2 py-2 sm:px-4 sm:py-3 rounded-lg font-agency text-xs sm:text-base md:text-lg lg:text-2xl transition-all relative z-10 whitespace-nowrap inline-block ${
+                  selected === key
+                    ? "bg-red-600 text-white shadow-lg shadow-red-600/50"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                {services[key].title}
+              </button>
+            </div>
           ))}
         </div>
 
-        {/* Animated Description Box */}
+        {/* Animated Description Box with Border Effect */}
         <AnimatePresence mode="wait">
           <motion.div
             key={selected}
@@ -54,8 +56,16 @@ export default function Services() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.4 }}
-            className="bg-gray-900/80 p-6 md:p-8 rounded-xl shadow-lg"
+            className="bg-gray-900/80 p-6 md:p-8 rounded-xl shadow-lg relative"
           >
+            {/* Hacker-style Border Animation */}
+            <div className="absolute inset-0 rounded-xl border border-red-600/30 pointer-events-none">
+              <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-red-600 to-transparent animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-red-600 to-transparent animate-pulse" style={{animationDelay: '1s'}}></div>
+              <div className="absolute top-0 left-0 w-0.5 h-full bg-gradient-to-b from-transparent via-red-600 to-transparent animate-pulse" style={{animationDelay: '0.5s'}}></div>
+              <div className="absolute top-0 right-0 w-0.5 h-full bg-gradient-to-b from-transparent via-red-600 to-transparent animate-pulse" style={{animationDelay: '1.5s'}}></div>
+            </div>
+            
             <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 font-agency underline underline-offset-4 decoration-red-600">
               {services[selected].title}
             </h3>

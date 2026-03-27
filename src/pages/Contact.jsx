@@ -5,7 +5,7 @@ export default function Contact() {
 <div className="mx-auto w-[90%] sm:w-[80%] md:w-[70%] lg:w-[60%] h-[300px] md:h-[450px] lg:h-[500px]">
   <iframe
     title="Evolution Gym Location"
-    src="https://www.google.com/maps?ll=13.02284,74.790204&z=15&t=k&output=embed"
+    src="https://www.google.com/maps?q=Bharani+Towers,+Sasihitlu+Road,+Mukka,+Mangaluru,+Karnataka+574146,+India&ll=13.02284,74.790204&z=15&t=k&output=embed"
     width="100%"
     height="100%"
     style={{ border: 0 }}
