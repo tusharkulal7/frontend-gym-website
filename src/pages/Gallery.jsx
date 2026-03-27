@@ -25,7 +25,6 @@ export default function GallerySection() {
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
   const [touchItem, setTouchItem] = useState(null);
-  const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
   const [draggedElement, setDraggedElement] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
@@ -424,9 +423,7 @@ export default function GallerySection() {
   const handleTouchStart = (e, item) => {
     if (!swapMode) return;
     
-    const touch = e.touches[0];
     setTouchItem(item);
-    setTouchPosition({ x: touch.clientX, y: touch.clientY });
     
     // Add visual feedback for mobile
     if (e.target) {
@@ -440,11 +437,8 @@ export default function GallerySection() {
   const handleTouchMove = (e) => {
     if (!swapMode || !touchItem) return;
     
-    const touch = e.touches[0];
-    setTouchPosition({ x: touch.clientX, y: touch.clientY });
-    
     // Find element under touch
-    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const elementBelow = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
     const galleryItem = elementBelow?.closest('[data-gallery-item]');
     
     // Remove previous hover effects
